@@ -32,6 +32,7 @@ export function MarkEntryPage() {
 
   const selectedClass = useMemo(() => classes.find((x) => x.className === className), [classes, className]);
   const selectedAssessment = useMemo(() => assessments.find((x) => x.id === assessmentId), [assessments, assessmentId]);
+  const classLabel = selectedClass ? `${selectedClass.yearLevel} ${selectedClass.className.charAt(0) + selectedClass.className.slice(1).toLowerCase()}` : className;
 
   useEffect(() => {
     getAvailableYears().then((ys) => { setYears(ys); setYear(ys[0]); }).catch(console.error);
@@ -62,7 +63,7 @@ export function MarkEntryPage() {
     try {
       const { data: enrolments, error: e1 } = await supabase
         .from('v2_enrolments')
-        .select('id,student_id,students(id,name)')
+        .select('id,student_id,students:v2_students!v2_enrolments_student_id_fkey(id,name)')
         .eq('school_year', year)
         .eq('class_name', className);
       if (e1) throw e1;
@@ -135,19 +136,19 @@ export function MarkEntryPage() {
   }
 
   return <>
-    <PageHeader eyebrow="DATA ENTRY" title="Pengisian AR" description="Hanya TOV, markah AR semasa dan ETR. UASA diimport melalui PDF." actions={<button className="btn btn-success" onClick={save} disabled={saving || !rows.length}><CloudUpload size={16}/>{saving ? 'Menyimpan...' : 'Simpan'}</button>} />
+    <PageHeader eyebrow="DATA ENTRY" title="Pengisian AR" actions={<button className="btn btn-success" onClick={save} disabled={saving || !rows.length}><CloudUpload size={16}/>{saving ? 'Menyimpan...' : 'Simpan'}</button>} />
 
     <GlassCard className="filter-card">
       <div className="filter-grid four">
         <label>Tahun<select value={year} onChange={(e) => setYear(Number(e.target.value))}>{years.map((y) => <option key={y}>{y}</option>)}</select></label>
-        <label>Kelas<select value={className} onChange={(e) => setClassName(e.target.value)}>{classes.map((x) => <option key={x.className}>{x.className}</option>)}</select></label>
+        <label>Kelas<select value={className} onChange={(e) => setClassName(e.target.value)}>{classes.map((x) => <option key={x.className} value={x.className}>{x.yearLevel} {x.className.charAt(0) + x.className.slice(1).toLowerCase()}</option>)}</select></label>
         <label>Pentaksiran<div className="inline-control"><select value={assessmentId} onChange={(e) => setAssessmentId(e.target.value)}>{assessments.map((a) => <option value={a.id} key={a.id}>{a.code}</option>)}</select><button className="icon-button" title="Tambah AR baru" onClick={addAr}><Plus size={17}/></button></div></label>
         <label>Mata Pelajaran<select value={subjectId} onChange={(e) => setSubjectId(e.target.value)}>{subjects.map((s) => <option value={s.id} key={s.id}>{s.name_ms}</option>)}</select></label>
       </div>
     </GlassCard>
 
     <GlassCard className="table-card">
-      <div className="card-toolbar"><div><h2>{selectedAssessment?.code || 'AR'} • {className}</h2><p>{subjects.find((s) => s.id === subjectId)?.name_ms || 'Pilih mata pelajaran'}</p></div><div className="status-chip"><Users size={15}/>{rows.length} murid</div></div>
+      <div className="card-toolbar"><div><h2>{selectedAssessment?.code || 'AR'} • {classLabel}</h2><p>{subjects.find((s) => s.id === subjectId)?.name_ms || 'Pilih mata pelajaran'}</p></div><div className="status-chip"><Users size={15}/>{rows.length} murid</div></div>
       {message && <div className={message.includes('berjaya') ? 'notice success' : 'notice'}>{message}</div>}
       <div className="table-scroll">
         <table className="data-table mark-table"><thead><tr><th>Bil</th><th>Nama Murid</th><th>TOV</th><th>{selectedAssessment?.code || 'AR'}</th><th>ETR</th><th>Gred</th></tr></thead>
