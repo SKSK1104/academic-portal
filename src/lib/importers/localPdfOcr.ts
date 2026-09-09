@@ -23,7 +23,7 @@ async function readPages(file:File, progress?:(s:string)=>void):Promise<Page[]> 
       const page=await pdf.getPage(n); const viewport=page.getViewport({scale:2});
       const canvas=document.createElement('canvas'); canvas.width=Math.ceil(viewport.width); canvas.height=Math.ceil(viewport.height);
       const ctx=canvas.getContext('2d',{willReadFrequently:true}); if(!ctx) throw new Error('Kanvas PDF tidak tersedia.');
-      await page.render({canvasContext:ctx,viewport}).promise;
+      await page.render({canvas,canvasContext:ctx,viewport}).promise;
       const r=await worker.recognize(canvas,{}, {text:true,blocks:true});
       const words:Word[]=[];
       for(const b of r.data.blocks||[]) for(const p of b.paragraphs||[]) for(const l of p.lines||[]) for(const w of l.words||[]){
