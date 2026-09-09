@@ -1,0 +1,6 @@
+/* Keep visible interface copy concise. Functional labels, values and validation messages remain visible. */
+.import-box p,
+.year-import-card > span,
+.card-toolbar p {
+  display: none !important;
+}
