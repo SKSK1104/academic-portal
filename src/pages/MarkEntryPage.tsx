@@ -136,7 +136,7 @@ export function MarkEntryPage() {
   }
 
   return <>
-    <PageHeader eyebrow="DATA ENTRY" title="Pengisian AR" actions={<button className="btn btn-success" onClick={save} disabled={saving || !rows.length}><CloudUpload size={16}/>{saving ? 'Menyimpan...' : 'Simpan'}</button>} />
+    <PageHeader title="Pengisian AR" actions={<button className="btn btn-primary" onClick={save} disabled={saving || !rows.length}><CloudUpload size={16}/>{saving ? 'Menyimpan...' : 'Simpan'}</button>} />
 
     <GlassCard className="filter-card">
       <div className="filter-grid four">
