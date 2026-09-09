@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
 import { PublicShell, TeacherShell } from './components/AppShell';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { SecretaryAssessmentSetup } from './components/SecretaryAssessmentSetup';
 
 const AcademicAnalysisPage = lazy(() => import('./pages/AcademicAnalysisPage').then((m) => ({ default: m.AcademicAnalysisPage })));
 const HomePage = lazy(() => import('./pages/HomePage').then((m) => ({ default: m.HomePage })));
@@ -19,6 +20,10 @@ function RouteLoader() {
   return <div className="route-loading" role="status" aria-live="polite">Memuatkan portal…</div>;
 }
 
+function ImportDataRoute() {
+  return <><SecretaryAssessmentSetup/><ImportCenterPage/></>;
+}
+
 export default function App() {
   return <Suspense fallback={<RouteLoader />}>
     <Routes>
@@ -32,7 +37,7 @@ export default function App() {
       <Route path="guru" element={<ProtectedRoute><TeacherShell /></ProtectedRoute>}>
         <Route index element={<TeacherDashboardPage />} />
         <Route path="pengisian" element={<MarkEntryPage />} />
-        <Route path="import" element={<ImportCenterPage />} />
+        <Route path="import" element={<ImportDataRoute />} />
         <Route path="analisis" element={<AcademicAnalysisPage />} />
         <Route path="pbd" element={<PbdAnalysisPage />} />
         <Route path="kecerdasan" element={<IntelligencePlaceholderPage />} />
