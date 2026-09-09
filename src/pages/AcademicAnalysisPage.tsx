@@ -173,7 +173,7 @@ export function AcademicAnalysisPage() {
             <span>TOV<strong>{tovAverage === null ? '—' : tovAverage.toFixed(1)}</strong></span><span>{selectedAssessment?.code || 'AR'}<strong>{group.summary.averageScore === null ? '—' : group.summary.averageScore.toFixed(1)}</strong></span><span>ETR<strong>{etrAverage === null ? '—' : etrAverage.toFixed(1)}</strong></span>
             <span>MTM<strong>{group.summary.mtm} ({group.summary.mtmPct.toFixed(1)}%)</strong></span><span>Intervensi<strong>{group.summary.intervention} ({group.summary.interventionPct.toFixed(1)}%)</strong></span>
           </div></div>
-          <div className="subject-card-body"><DistributionBars items={items}/><InterventionPanel count={group.summary.intervention} percentage={group.summary.interventionPct} rule="F (≤19)"><details className="intervention-details"><summary>Lihat murid ({interventionNames.length})</summary>{interventionNames.length ? <ul>{interventionNames.map((n) => <li key={n}>{n}</li>)}</ul> : <p>Tiada murid.</p>}</details></InterventionPanel></div>
+          <div className="subject-card-body"><DistributionBars items={items}/><InterventionPanel count={group.summary.intervention} percentage={group.summary.interventionPct} rule="F (≤19)"><div className="intervention-details"><div className="intervention-list-title">Murid ({interventionNames.length})</div>{interventionNames.length ? <ul>{interventionNames.map((n) => <li key={n}>{n}</li>)}</ul> : <p>Tiada murid.</p>}</div></InterventionPanel></div>
         </GlassCard>;
       })() : <GlassCard className="loading-card">Tiada data untuk pilihan ini.</GlassCard>}
     </div>
