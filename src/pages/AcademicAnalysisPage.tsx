@@ -57,7 +57,7 @@ export function AcademicAnalysisPage() {
   async function loadScope() {
     setLoading(true); setError('');
     try {
-      let enrolmentQuery = supabase.from('v2_enrolments').select('id,student_id,class_name,year_level').eq('school_year', year);
+      let enrolmentQuery = supabase.from('v2_enrolments').select('id,student_id,class_name,year_level').eq('school_year', year).eq('is_active', true);
       if (className !== 'ALL') enrolmentQuery = enrolmentQuery.eq('class_name', className);
       const enrolmentResult = await enrolmentQuery;
       if (enrolmentResult.error) throw enrolmentResult.error;
@@ -83,7 +83,7 @@ export function AcademicAnalysisPage() {
 
       const currentMarks = (currentResult.data || []) as MarkRow[];
       const allTrendMarks = (trendResult.data || []) as MarkRow[];
-      const subjectIds = [...new Set([...currentMarks, ...allTrendMarks].map((m) => m.subject_id))];
+      const subjectIds = [...new Set([...currentMarks, ...allTrendMarks, ...(benchmarkResult.data || [])].map((m: any) => m.subject_id).filter(Boolean))];
       const subjectResult = subjectIds.length ? await supabase.from('v2_subjects').select('id,code,name_ms,name_en').in('id', subjectIds) : { data: [], error: null };
       if (subjectResult.error) throw subjectResult.error;
 
@@ -112,12 +112,13 @@ export function AcademicAnalysisPage() {
       if (!subject) return;
       if (!map.has(subject.code)) map.set(subject.code, { subject, rows: [] });
     });
+    subjects.forEach((subject) => { if (!map.has(subject.code)) map.set(subject.code, { subject, rows: [] }); });
     marks.forEach((row) => {
       const subject = subjectById.get(row.subject_id);
       if (subject) map.get(subject.code)?.rows.push(row);
     });
     return [...map.values()].sort((a, b) => a.subject.name_ms.localeCompare(b.subject.name_ms));
-  }, [marks, trendMarks, subjectById]);
+  }, [marks, trendMarks, subjects, subjectById]);
 
   useEffect(() => {
     if (!subjectGroups.length) { setSubjectCode(''); return; }
@@ -158,7 +159,7 @@ export function AcademicAnalysisPage() {
       const rows = trendMarks.filter((m) => m.subject_id === selectedSubject.id && m.assessment_id === event.assessmentId);
       const avg = buildAcademicSummary(rows).averageScore;
       return { code: event.code, value: avg === null ? null : round1(avg) };
-    }).filter((x) => x.value !== null);
+    });
   }, [selectedSubject, progressEvents, trendMarks, tovAverage, etrAverage]);
 
   const interventionRows = useMemo(() => currentRows.filter((r) => (r.grade || '').toUpperCase() === 'F' || (r.score !== null && Number(r.score) <= 19)).map((r) => {
@@ -178,11 +179,28 @@ export function AcademicAnalysisPage() {
           : selectedBenchmarks.filter((b) => event.kind === 'TOV' ? b.tov !== null : b.etr !== null).length;
         const pct = total ? people.length / total * 100 : 0;
         row[event.code] = people.length;
-        row[event.labelKey] = `${people.length} (${pct.toFixed(1)}%)`;
+        row[event.labelKey] = total ? `${people.length} (${pct.toFixed(1)}%)` : '—';
       });
       return row;
     });
   }, [selectedSubject, progressEvents, selectedBenchmarks, trendMarks, enrolmentById, studentById]);
+
+  const gradeMembership = useMemo(() => {
+    if (!selectedSubject) return [];
+    return GRADE_ORDER.map((grade) => ({
+      grade,
+      events: progressEvents.map((event) => ({
+        code: event.code,
+        names: gradeMembers(event, grade, selectedSubject.id, selectedBenchmarks, trendMarks, enrolmentById, studentById).map((x) => x.name)
+      }))
+    }));
+  }, [selectedSubject, progressEvents, selectedBenchmarks, trendMarks, enrolmentById, studentById]);
+
+  const eventCoverage = useMemo(() => progressEvents.map((event) => {
+    if (!selectedSubject) return { code: event.code, total: 0 };
+    if (event.kind === 'AR') return { code: event.code, total: trendMarks.filter((m) => m.subject_id === selectedSubject.id && m.assessment_id === event.assessmentId).length };
+    return { code: event.code, total: selectedBenchmarks.filter((b) => event.kind === 'TOV' ? b.tov !== null : b.etr !== null).length };
+  }), [progressEvents, selectedSubject, selectedBenchmarks, trendMarks]);
 
   function openGradeDrilldown(event: ProgressEvent, grade: string) {
     if (!selectedSubject || !grade) return;
@@ -194,6 +212,7 @@ export function AcademicAnalysisPage() {
   const deltaTov = currentAverage !== null && tovAverage !== null ? currentAverage - tovAverage : null;
   const gapEtr = currentAverage !== null && etrAverage !== null ? etrAverage - currentAverage : null;
   const classDisplay = className === 'ALL' ? 'Seluruh Sekolah' : `${classes.find((c) => c.className === className)?.yearLevel || ''} ${formatClass(className)}`.trim();
+  const gradeChartWidth = Math.max(1180, progressEvents.length * GRADE_ORDER.length * 62);
 
   return <>
     <PageHeader title="Analisis Akademik" actions={<button className="btn btn-ghost" onClick={() => window.print()}><Printer size={16}/> Cetak</button>} />
@@ -223,26 +242,30 @@ export function AcademicAnalysisPage() {
 
     <div className="diagnostic-grid">
       <div className="trajectory-stack">
-        <GlassCard className="chart-card trajectory-card">
+        <GlassCard className="chart-card trajectory-card premium-card">
           <div className="card-toolbar"><div><h2>Trajektori Prestasi</h2></div><div className="status-chip">TOV → AR → ETR</div></div>
-          <div className="chart-height large">{loading ? <div className="empty-inline">Memuatkan analisis…</div> : trajectory.length ? <ResponsiveContainer width="100%" height="100%"><BarChart data={trajectory} margin={{top:28,right:24,bottom:8,left:2}}><CartesianGrid vertical={false}/><XAxis dataKey="code" tickLine={false} axisLine={{stroke:'#aaa89d'}}/><YAxis domain={[0,100]} tickLine={false} axisLine={false}/><Tooltip formatter={(v) => [`${v}`, 'Purata']} contentStyle={{background:'#fffefa',border:'1px solid #c9c7bd',borderRadius:2,color:'#17191d'}}/><Bar dataKey="value" fill="#d5a900" radius={[2,2,0,0]}><LabelList dataKey="value" position="top" formatter={(value: any) => Number(value).toFixed(1)}/></Bar></BarChart></ResponsiveContainer> : <div className="empty-inline">Tiada data trajektori.</div>}</div>
+          <div className="event-visibility-strip">{trajectory.map((p) => <div key={p.code}><strong>{p.code}</strong><span>{p.value === null ? 'Tiada data' : p.value.toFixed(1)}</span></div>)}</div>
+          <div className="chart-height large">{loading ? <div className="empty-inline">Memuatkan analisis…</div> : trajectory.some((x) => x.value !== null) ? <ResponsiveContainer width="100%" height="100%"><BarChart data={trajectory} margin={{top:38,right:24,bottom:14,left:6}}><CartesianGrid vertical={false}/><XAxis dataKey="code" tickLine={false} axisLine={{stroke:'#aaa89d'}} tick={{fontSize:15,fontWeight:800}}/><YAxis domain={[0,100]} tickLine={false} axisLine={false} tick={{fontSize:14}}/><Tooltip formatter={(v) => [`${v}`, 'Purata']} contentStyle={{background:'#fffefa',border:'1px solid #c9c7bd',borderRadius:2,color:'#17191d',fontSize:14}}/><Bar dataKey="value" fill="#d5a900" radius={[3,3,0,0]} maxBarSize={110}><LabelList dataKey="value" position="top" formatter={(value: any) => value === null ? '' : Number(value).toFixed(1)} className="trajectory-bar-label"/></Bar></BarChart></ResponsiveContainer> : <div className="empty-inline">Tiada data trajektori.</div>}</div>
         </GlassCard>
 
-        <GlassCard className="summary-panel intervention-card intervention-under-trajectory"><div className="intervention-body"><h3>Senarai Murid Memerlukan Intervensi ({interventionRows.length})</h3>{interventionRows.length ? <table className="intervention-table"><thead><tr><th>Bil</th><th>Nama Murid</th><th>Gred</th><th>Markah</th></tr></thead><tbody>{interventionRows.map((r,i) => <tr key={r.id}><td>{i+1}</td><td>{r.name}</td><td className="score">{r.grade}</td><td>{r.score ?? '—'}</td></tr>)}</tbody></table> : <div className="empty-inline">Tiada murid dalam kategori intervensi.</div>}</div></GlassCard>
+        <GlassCard className="summary-panel intervention-card intervention-under-trajectory premium-card"><div className="intervention-body"><h3>Senarai Murid Memerlukan Intervensi ({interventionRows.length})</h3>{interventionRows.length ? <table className="intervention-table"><thead><tr><th>Bil</th><th>Nama Murid</th><th>Gred</th><th>Markah</th></tr></thead><tbody>{interventionRows.map((r,i) => <tr key={r.id}><td>{i+1}</td><td>{r.name}</td><td className="score">{r.grade}</td><td>{r.score ?? '—'}</td></tr>)}</tbody></table> : <div className="empty-inline">Tiada murid dalam kategori intervensi.</div>}</div></GlassCard>
       </div>
 
-      <GlassCard className="target-panel">
+      <GlassCard className="target-panel premium-card">
         <div><h3>Sasaran & Pencapaian</h3><div className="target-number">{currentAverage === null ? '—' : currentAverage.toFixed(1)} <small>/ {etrAverage === null ? '—' : etrAverage.toFixed(1)}</small></div></div>
         <div className="target-meta"><div>Berbanding TOV: <strong className={deltaTov !== null && deltaTov >= 0 ? 'delta-positive' : 'delta-negative'}>{deltaTov === null ? '—' : `${deltaTov >= 0 ? '+' : ''}${deltaTov.toFixed(1)}`}</strong></div><div style={{marginTop:8}}>Baki ke ETR: <strong>{gapEtr === null ? '—' : `${gapEtr.toFixed(1)} markah`}</strong></div></div>
       </GlassCard>
     </div>
 
-    <GlassCard className="summary-panel grade-progression-card">
+    <GlassCard className="summary-panel grade-progression-card premium-card">
       <div className="card-toolbar grade-chart-toolbar"><div><h2>Taburan Gred</h2></div><span className="status-chip">Klik bar untuk senarai murid</span></div>
-      <div className="grade-progression-chart">{selectedSubject && gradeProgression.length ? <ResponsiveContainer width="100%" height="100%"><BarChart data={gradeProgression} margin={{top:58,right:24,bottom:18,left:6}} barCategoryGap="12%"><CartesianGrid vertical={false}/><XAxis dataKey="grade" tickLine={false} axisLine={{stroke:'#aaa89d'}}/><YAxis allowDecimals={false} tickLine={false} axisLine={false}/><Tooltip formatter={(value, name) => [`${value} murid`, String(name)]} contentStyle={{background:'#fffefa',border:'1px solid #c9c7bd',borderRadius:2,color:'#17191d'}}/><Legend verticalAlign="bottom" height={32}/>{progressEvents.map((event, index) => <Bar key={event.code} dataKey={event.code} name={event.label} fill={eventColor(index, progressEvents.length)} radius={[2,2,0,0]} cursor="pointer" onClick={(data: any) => openGradeDrilldown(event, String(data?.payload?.grade || data?.grade || ''))}><LabelList dataKey={event.labelKey} position="top" className="grade-bar-label"/></Bar>)}</BarChart></ResponsiveContainer> : <div className="empty-inline">Tiada data taburan gred.</div>}</div>
+      <div className="event-visibility-strip grade-event-strip">{eventCoverage.map((e) => <div key={e.code}><strong>{e.code}</strong><span>{e.total ? `${e.total} rekod` : 'Tiada data'}</span></div>)}</div>
+      <div className="grade-chart-scroll"><div className="grade-progression-chart" style={{width: gradeChartWidth}}>{selectedSubject && gradeProgression.length ? <ResponsiveContainer width="100%" height="100%"><BarChart data={gradeProgression} margin={{top:72,right:34,bottom:22,left:12}} barCategoryGap="20%" barGap={8}><CartesianGrid vertical={false}/><XAxis dataKey="grade" tickLine={false} axisLine={{stroke:'#aaa89d'}} tick={{fontSize:17,fontWeight:900}}/><YAxis allowDecimals={false} tickLine={false} axisLine={false} tick={{fontSize:14}}/><Tooltip formatter={(value, name) => [`${value} murid`, String(name)]} contentStyle={{background:'#fffefa',border:'1px solid #c9c7bd',borderRadius:2,color:'#17191d',fontSize:14}}/><Legend verticalAlign="bottom" height={42} wrapperStyle={{fontSize:14,fontWeight:800}}/>{progressEvents.map((event, index) => <Bar key={event.code} dataKey={event.code} name={event.label} fill={eventColor(index, progressEvents.length)} radius={[3,3,0,0]} cursor="pointer" minPointSize={eventCoverage.find((e) => e.code === event.code)?.total ? 0 : 0} onClick={(data: any) => openGradeDrilldown(event, String(data?.payload?.grade || data?.grade || ''))}><LabelList dataKey={event.labelKey} position="top" className="grade-bar-label"/></Bar>)}</BarChart></ResponsiveContainer> : <div className="empty-inline">Tiada data taburan gred.</div>}</div></div>
     </GlassCard>
 
-    <GlassCard className="summary-panel performance-summary-wide"><h3>Rumusan Prestasi</h3><div className="performance-summary-grid"><div className="summary-row"><span>Purata TOV</span><strong>{tovAverage === null ? '—' : tovAverage.toFixed(1)}</strong></div><div className="summary-row"><span>Purata {assessment?.code || 'AR'}</span><strong>{currentAverage === null ? '—' : currentAverage.toFixed(1)}</strong></div><div className="summary-row"><span>ETR</span><strong>{etrAverage === null ? '—' : etrAverage.toFixed(1)}</strong></div><div className="summary-row"><span>MTM</span><strong>{summary.mtm} ({summary.mtmPct.toFixed(1)}%)</strong></div><div className="summary-row"><span>Intervensi</span><strong>{summary.intervention} ({summary.interventionPct.toFixed(1)}%)</strong></div></div></GlassCard>
+    <GlassCard className="summary-panel performance-summary-wide premium-card"><h3>Rumusan Prestasi</h3><div className="performance-summary-grid"><div className="summary-row"><span>Purata TOV</span><strong>{tovAverage === null ? '—' : tovAverage.toFixed(1)}</strong></div><div className="summary-row"><span>Purata {assessment?.code || 'AR'}</span><strong>{currentAverage === null ? '—' : currentAverage.toFixed(1)}</strong></div><div className="summary-row"><span>ETR</span><strong>{etrAverage === null ? '—' : etrAverage.toFixed(1)}</strong></div><div className="summary-row"><span>MTM</span><strong>{summary.mtm} ({summary.mtmPct.toFixed(1)}%)</strong></div><div className="summary-row"><span>Intervensi</span><strong>{summary.intervention} ({summary.interventionPct.toFixed(1)}%)</strong></div></div></GlassCard>
+
+    <GlassCard className="summary-panel grade-membership-card premium-card"><div className="card-toolbar"><div><h2>Senarai Murid Mengikut Gred</h2></div><span className="status-chip">Cetakan lengkap</span></div><div className="grade-membership-scroll"><table className="data-table grade-membership-table"><thead><tr><th>Gred</th>{progressEvents.map((event) => <th key={event.code}>{event.code}</th>)}</tr></thead><tbody>{gradeMembership.map((row) => <tr key={row.grade}><td className="grade-membership-grade"><strong>{row.grade}</strong></td>{row.events.map((event) => <td key={`${row.grade}-${event.code}`}><strong className="grade-membership-count">{event.names.length || '—'}</strong>{event.names.length ? <div className="grade-membership-names">{event.names.map((name) => <span key={name}>{name}</span>)}</div> : <span className="muted-cell">Tiada murid</span>}</td>)}</tr>)}</tbody></table></div></GlassCard>
 
     {drilldown && <div className="grade-modal-backdrop no-print" role="dialog" aria-modal="true" aria-label={`Murid gred ${drilldown.grade} ${drilldown.eventCode}`} onMouseDown={(e) => { if (e.currentTarget === e.target) setDrilldown(null); }}>
       <div className="grade-modal"><div className="grade-modal-head"><div><span>{drilldown.eventCode}</span><h2>Gred {drilldown.grade}</h2></div><button className="icon-button" onClick={() => setDrilldown(null)} aria-label="Tutup"><X size={18}/></button></div><div className="grade-modal-count">{drilldown.names.length} murid</div>{drilldown.names.length ? <ol className="grade-modal-list">{drilldown.names.map((name) => <li key={name}>{name}</li>)}</ol> : <div className="empty-inline">Tiada murid dalam kategori ini.</div>}</div>
