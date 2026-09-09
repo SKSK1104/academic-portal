@@ -49,7 +49,7 @@ export function PbdAnalysisPage() {
   async function loadScope() {
     setLoading(true); setError('');
     try {
-      let eq = supabase.from('v2_enrolments').select('id,student_id,class_name,year_level').eq('school_year', year);
+      let eq = supabase.from('v2_enrolments').select('id,student_id,class_name,year_level').eq('school_year', year).eq('is_active', true);
       if (className !== 'ALL') eq = eq.eq('class_name', className);
       const er = await eq; if (er.error) throw er.error;
       const scope = (er.data || []) as EnrolmentRow[];
