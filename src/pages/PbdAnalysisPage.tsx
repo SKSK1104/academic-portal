@@ -16,7 +16,7 @@ interface PbdRow {
   tp: number;
   subject_id: string;
   subjects: { code: string; name_ms: string } | null;
-  enrolments: { class_name: string; students: { name: string } | null } | null;
+  enrolments: { class_name: string; v2_students: { name: string } | null } | null;
   assessments?: { code: string; school_year: number } | null;
 }
 
@@ -49,7 +49,7 @@ export function PbdAnalysisPage() {
     setError('');
     const selected = assessments.find((a) => a.id === assessmentId);
     let q = supabase.from('v2_pbd_records')
-      .select('tp,subject_id,subjects(code,name_ms),enrolments!inner(class_name,students(name))')
+      .select('tp,subject_id,subjects(code,name_ms),enrolments!inner(class_name,v2_students(name))')
       .eq('assessment_id', assessmentId);
     if (className !== 'ALL') q = q.eq('enrolments.class_name', className);
     const { data, error } = await q;
@@ -131,7 +131,7 @@ export function PbdAnalysisPage() {
 
     <div className="subject-analysis-list">{groups.map((g) => {
       const items = TP_ORDER.map((tp) => ({ label: tp, count: g.summary.tps[tp], pct: g.summary.total ? (g.summary.tps[tp] / g.summary.total) * 100 : 0 }));
-      const names = g.rows.filter((r) => r.tp < 3).map((r) => r.enrolments?.students?.name).filter(Boolean) as string[];
+      const names = g.rows.filter((r) => r.tp < 3).map((r) => r.enrolments?.v2_students?.name).filter(Boolean) as string[];
       return <GlassCard className="subject-card" key={g.code}><div className="subject-card-head"><div><div className="eyebrow">PBD</div><h2>{g.name}</h2></div><div className="metric-pair"><span>MTM<strong>{g.summary.mtmPct.toFixed(1)}%</strong></span><span>Rekod<strong>{g.summary.total}</strong></span></div></div><div className="subject-card-body"><DistributionBars items={items}/><InterventionPanel count={g.summary.intervention} percentage={g.summary.interventionPct} rule="TP1 dan TP2"><details className="intervention-details"><summary>Lihat murid ({names.length})</summary>{names.length ? <ul>{names.map((n) => <li key={n}>{n}</li>)}</ul> : <p>Tiada murid.</p>}</details></InterventionPanel></div></GlassCard>;
     })}</div>
   </>;
