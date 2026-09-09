@@ -1,0 +1,7 @@
+project_id = "portal-v2"
+
+[functions.parse-assessment-pdf]
+verify_jwt = true
+
+[functions.parent-report]
+verify_jwt = false
