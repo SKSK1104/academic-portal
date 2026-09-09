@@ -1,8 +1,8 @@
-import { CloudUpload, Plus, Save, Users } from 'lucide-react';
+import { CloudUpload, Save, Users } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { GlassCard } from '../components/GlassCard';
 import { PageHeader } from '../components/PageHeader';
-import { createNextAr, getAssessments, getAvailableYears, getClasses, getSubjectsForYear } from '../lib/data';
+import { getAssessments, getAvailableYears, getClasses, getSubjectsForYear } from '../lib/data';
 import { gradeFromScore } from '../lib/grade';
 import { supabase } from '../lib/supabase';
 import type { Assessment, Subject } from '../lib/types';
@@ -12,8 +12,8 @@ interface EntryRow {
   studentId: string;
   name: string;
   tov: string;
-  score: string;
   etr: string;
+  scores: Record<string, string>;
 }
 
 export function MarkEntryPage() {
@@ -22,7 +22,6 @@ export function MarkEntryPage() {
   const [classes, setClasses] = useState<Array<{ className: string; yearLevel: number }>>([]);
   const [className, setClassName] = useState('');
   const [assessments, setAssessments] = useState<Assessment[]>([]);
-  const [assessmentId, setAssessmentId] = useState('');
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [subjectId, setSubjectId] = useState('');
   const [rows, setRows] = useState<EntryRow[]>([]);
@@ -31,8 +30,8 @@ export function MarkEntryPage() {
   const [message, setMessage] = useState('');
 
   const selectedClass = useMemo(() => classes.find((x) => x.className === className), [classes, className]);
-  const selectedAssessment = useMemo(() => assessments.find((x) => x.id === assessmentId), [assessments, assessmentId]);
-  const classLabel = selectedClass ? `${selectedClass.yearLevel} ${selectedClass.className.charAt(0) + selectedClass.className.slice(1).toLowerCase()}` : className;
+  const classLabel = selectedClass ? `${selectedClass.yearLevel} ${formatClass(selectedClass.className)}` : className;
+  const orderedAssessments = useMemo(() => [...assessments].sort((a, b) => Number(a.sequence_no || 0) - Number(b.sequence_no || 0)), [assessments]);
 
   useEffect(() => {
     getAvailableYears().then((ys) => { setYears(ys); setYear(ys[0]); }).catch(console.error);
@@ -41,22 +40,24 @@ export function MarkEntryPage() {
   useEffect(() => {
     if (!year) return;
     Promise.all([getClasses(year), getAssessments(year, 'AR')]).then(([cs, ars]) => {
-      setClasses(cs); setClassName(cs[0]?.className || '');
-      setAssessments(ars); setAssessmentId(ars[0]?.id || '');
+      setClasses(cs);
+      setClassName((current) => cs.some((x) => x.className === current) ? current : (cs[0]?.className || ''));
+      setAssessments(ars);
     }).catch((e) => setMessage(e.message));
   }, [year]);
 
   useEffect(() => {
     if (!selectedClass) return;
     getSubjectsForYear(selectedClass.yearLevel, 'AR').then((subs) => {
-      setSubjects(subs); setSubjectId(subs[0]?.id || '');
+      setSubjects(subs);
+      setSubjectId((current) => subs.some((s) => s.id === current) ? current : (subs[0]?.id || ''));
     }).catch((e) => setMessage(e.message));
   }, [selectedClass]);
 
   useEffect(() => {
-    if (!className || !subjectId || !assessmentId) { setRows([]); return; }
+    if (!className || !subjectId || !orderedAssessments.length) { setRows([]); return; }
     void loadRows();
-  }, [className, subjectId, assessmentId]);
+  }, [className, subjectId, orderedAssessments, year]);
 
   async function loadRows() {
     setLoading(true); setMessage('');
@@ -70,53 +71,73 @@ export function MarkEntryPage() {
       const ids = (enrolments || []).map((x: any) => x.id);
       if (!ids.length) { setRows([]); return; }
 
+      const assessmentIds = orderedAssessments.map((a) => a.id);
       const [{ data: benchmarks, error: e2 }, { data: marks, error: e3 }] = await Promise.all([
         supabase.from('v2_academic_benchmarks').select('enrolment_id,tov,etr').eq('subject_id', subjectId).in('enrolment_id', ids),
-        supabase.from('v2_academic_marks').select('enrolment_id,score').eq('subject_id', subjectId).eq('assessment_id', assessmentId).in('enrolment_id', ids)
+        supabase.from('v2_academic_marks').select('assessment_id,enrolment_id,score,grade').eq('subject_id', subjectId).in('assessment_id', assessmentIds).in('enrolment_id', ids)
       ]);
       if (e2) throw e2; if (e3) throw e3;
-      const b = new Map((benchmarks || []).map((x: any) => [x.enrolment_id, x]));
-      const m = new Map((marks || []).map((x: any) => [x.enrolment_id, x]));
-      setRows((enrolments || []).map((x: any) => ({
-        enrolmentId: x.id,
-        studentId: x.student_id,
-        name: x.students?.name || '—',
-        tov: b.get(x.id)?.tov ?? '',
-        score: m.get(x.id)?.score ?? '',
-        etr: b.get(x.id)?.etr ?? ''
-      })).sort((a, b) => a.name.localeCompare(b.name)));
+
+      const benchmarkByEnrolment = new Map((benchmarks || []).map((x: any) => [x.enrolment_id, x]));
+      const scoreByKey = new Map((marks || []).map((x: any) => [`${x.enrolment_id}|${x.assessment_id}`, x]));
+      setRows((enrolments || []).map((x: any) => {
+        const scores: Record<string, string> = {};
+        orderedAssessments.forEach((a) => {
+          const mark = scoreByKey.get(`${x.id}|${a.id}`) as any;
+          scores[a.id] = mark?.score === null || mark?.score === undefined ? '' : String(mark.score);
+        });
+        return {
+          enrolmentId: x.id,
+          studentId: x.student_id,
+          name: x.students?.name || '—',
+          tov: benchmarkByEnrolment.get(x.id)?.tov ?? '',
+          etr: benchmarkByEnrolment.get(x.id)?.etr ?? '',
+          scores
+        };
+      }).sort((a, b) => a.name.localeCompare(b.name)));
     } catch (e: any) { setMessage(e.message || String(e)); }
     finally { setLoading(false); }
   }
 
-  function updateRow(index: number, key: 'tov' | 'score' | 'etr', value: string) {
-    const clean = value === '' ? '' : String(Math.max(0, Math.min(100, Number(value))));
+  function cleanScore(value: string) {
+    return value === '' ? '' : String(Math.max(0, Math.min(100, Number(value))));
+  }
+
+  function updateBenchmark(index: number, key: 'tov' | 'etr', value: string) {
+    const clean = cleanScore(value);
     setRows((prev) => prev.map((row, i) => i === index ? { ...row, [key]: clean } : row));
   }
 
+  function updateAr(index: number, assessmentId: string, value: string) {
+    const clean = cleanScore(value);
+    setRows((prev) => prev.map((row, i) => i === index ? { ...row, scores: { ...row.scores, [assessmentId]: clean } } : row));
+  }
+
   async function save() {
-    if (!subjectId || !assessmentId) return;
+    if (!subjectId || !orderedAssessments.length) return;
     setSaving(true); setMessage('');
     try {
+      const now = new Date().toISOString();
       const benchmarkPayload = rows.map((r) => ({
         enrolment_id: r.enrolmentId,
         subject_id: subjectId,
         tov: r.tov === '' ? null : Number(r.tov),
         etr: r.etr === '' ? null : Number(r.etr),
-        updated_at: new Date().toISOString()
+        updated_at: now
       }));
-      const markPayload = rows.map((r) => {
-        const score = r.score === '' ? null : Number(r.score);
+      const markPayload = rows.flatMap((r) => orderedAssessments.map((a) => {
+        const raw = r.scores[a.id] ?? '';
+        const score = raw === '' ? null : Number(raw);
         return {
           enrolment_id: r.enrolmentId,
           subject_id: subjectId,
-          assessment_id: assessmentId,
+          assessment_id: a.id,
           score,
           grade: score === null ? 'TH' : gradeFromScore(score),
           source: 'manual',
-          updated_at: new Date().toISOString()
+          updated_at: now
         };
-      });
+      }));
       const [b, m] = await Promise.all([
         supabase.from('v2_academic_benchmarks').upsert(benchmarkPayload, { onConflict: 'enrolment_id,subject_id' }),
         supabase.from('v2_academic_marks').upsert(markPayload, { onConflict: 'assessment_id,enrolment_id,subject_id' })
@@ -127,36 +148,28 @@ export function MarkEntryPage() {
     finally { setSaving(false); }
   }
 
-  async function addAr() {
-    try {
-      const next = await createNextAr(year);
-      const ars = await getAssessments(year, 'AR');
-      setAssessments(ars); setAssessmentId(next.id);
-    } catch (e: any) { setMessage(e.message || String(e)); }
-  }
-
   return <>
     <PageHeader title="Pengisian AR" actions={<button className="btn btn-primary" onClick={save} disabled={saving || !rows.length}><CloudUpload size={16}/>{saving ? 'Menyimpan...' : 'Simpan'}</button>} />
 
     <GlassCard className="filter-card">
-      <div className="filter-grid four">
+      <div className="filter-grid three">
         <label>Tahun<select value={year} onChange={(e) => setYear(Number(e.target.value))}>{years.map((y) => <option key={y}>{y}</option>)}</select></label>
-        <label>Kelas<select value={className} onChange={(e) => setClassName(e.target.value)}>{classes.map((x) => <option key={x.className} value={x.className}>{x.yearLevel} {x.className.charAt(0) + x.className.slice(1).toLowerCase()}</option>)}</select></label>
-        <label>Pentaksiran<div className="inline-control"><select value={assessmentId} onChange={(e) => setAssessmentId(e.target.value)}>{assessments.map((a) => <option value={a.id} key={a.id}>{a.code}</option>)}</select><button className="icon-button" title="Tambah AR baru" onClick={addAr}><Plus size={17}/></button></div></label>
+        <label>Kelas<select value={className} onChange={(e) => setClassName(e.target.value)}>{classes.map((x) => <option key={x.className} value={x.className}>{x.yearLevel} {formatClass(x.className)}</option>)}</select></label>
         <label>Mata Pelajaran<select value={subjectId} onChange={(e) => setSubjectId(e.target.value)}>{subjects.map((s) => <option value={s.id} key={s.id}>{s.name_ms}</option>)}</select></label>
       </div>
     </GlassCard>
 
-    <GlassCard className="table-card">
-      <div className="card-toolbar"><div><h2>{selectedAssessment?.code || 'AR'} • {classLabel}</h2><p>{subjects.find((s) => s.id === subjectId)?.name_ms || 'Pilih mata pelajaran'}</p></div><div className="status-chip"><Users size={15}/>{rows.length} murid</div></div>
+    <GlassCard className="table-card ar-entry-card">
+      <div className="card-toolbar"><div><h2>{classLabel}</h2><p>{subjects.find((s) => s.id === subjectId)?.name_ms || 'Pilih mata pelajaran'}</p></div><div className="status-chip"><Users size={15}/>{rows.length} murid</div></div>
       {message && <div className={message.includes('berjaya') ? 'notice success' : 'notice'}>{message}</div>}
-      <div className="table-scroll">
-        <table className="data-table mark-table"><thead><tr><th>Bil</th><th>Nama Murid</th><th>TOV</th><th>{selectedAssessment?.code || 'AR'}</th><th>ETR</th><th>Gred</th></tr></thead>
-          <tbody>{loading ? <tr><td colSpan={6}>Memuatkan...</td></tr> : rows.map((r, i) => <tr key={r.enrolmentId}><td>{i + 1}</td><td className="student-name">{r.name}</td>
-            <td><input type="number" min="0" max="100" value={r.tov} onChange={(e) => updateRow(i, 'tov', e.target.value)}/></td>
-            <td><input type="number" min="0" max="100" value={r.score} onChange={(e) => updateRow(i, 'score', e.target.value)}/></td>
-            <td><input type="number" min="0" max="100" value={r.etr} onChange={(e) => updateRow(i, 'etr', e.target.value)}/></td>
-            <td><span className={`grade-badge grade-${r.score === '' ? 'TH' : gradeFromScore(Number(r.score))}`}>{r.score === '' ? 'TH' : gradeFromScore(Number(r.score))}</span></td>
+      <div className="table-scroll ar-entry-scroll">
+        <table className="data-table mark-table ar-round-table"><thead><tr><th>Bil</th><th>Nama Murid</th><th>TOV</th><th>Gred</th>{orderedAssessments.map((a) => <><th key={`${a.id}-score`}>{a.code}</th><th key={`${a.id}-grade`}>Gred</th></>)}<th>ETR</th><th>Gred</th></tr></thead>
+          <tbody>{loading ? <tr><td colSpan={6 + orderedAssessments.length * 2}>Memuatkan...</td></tr> : rows.map((r, i) => <tr key={r.enrolmentId}><td>{i + 1}</td><td className="student-name">{r.name}</td>
+            <td><input type="number" min="0" max="100" value={r.tov} onChange={(e) => updateBenchmark(i, 'tov', e.target.value)}/></td>
+            <td>{gradeBadge(r.tov)}</td>
+            {orderedAssessments.map((a) => <><td key={`${r.enrolmentId}-${a.id}-score`}><input type="number" min="0" max="100" value={r.scores[a.id] ?? ''} onChange={(e) => updateAr(i, a.id, e.target.value)}/></td><td key={`${r.enrolmentId}-${a.id}-grade`}>{gradeBadge(r.scores[a.id] ?? '')}</td></>)}
+            <td><input type="number" min="0" max="100" value={r.etr} onChange={(e) => updateBenchmark(i, 'etr', e.target.value)}/></td>
+            <td>{gradeBadge(r.etr)}</td>
           </tr>)}</tbody>
         </table>
       </div>
@@ -164,3 +177,10 @@ export function MarkEntryPage() {
     </GlassCard>
   </>;
 }
+
+function gradeBadge(value: string) {
+  if (value === '') return <span className="grade-badge grade-TH">—</span>;
+  const grade = gradeFromScore(Number(value));
+  return <span className={`grade-badge grade-${grade}`}>{grade}</span>;
+}
+function formatClass(value: string) { return value ? value.charAt(0) + value.slice(1).toLowerCase() : ''; }
