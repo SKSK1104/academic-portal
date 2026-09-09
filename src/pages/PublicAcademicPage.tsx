@@ -77,7 +77,7 @@ export function PublicAcademicPage() {
   const interventionCount = selectedRow ? Number(selectedRow.F || 0) : 0;
 
   return <div className="public-report">
-    <PageHeader eyebrow="LAPORAN UMUM" title="Prestasi Akademik" description="Data agregat sahaja. Tiada nama murid dipaparkan."/>
+    <PageHeader title="Prestasi Akademik" />
     <GlassCard className="filter-card"><div className="filter-grid four">
       <label>Tahun<select value={year} onChange={(e) => setYear(Number(e.target.value))}>{years.map((y) => <option key={y}>{y}</option>)}</select></label>
       <label>Kelas<select value={className} onChange={(e) => setClassName(e.target.value)}><option value="ALL">Seluruh Sekolah</option>{classes.map((c) => <option key={`${c.year_level}-${c.class_name}`} value={c.class_name}>{c.year_level} {c.class_name.charAt(0) + c.class_name.slice(1).toLowerCase()}</option>)}</select></label>
@@ -87,8 +87,8 @@ export function PublicAcademicPage() {
     {error && <div className="notice">{error}</div>}
     <div className="stats-grid four">
       <StatCard icon={Users} label="Bilangan Calon" value={cohort.candidates}/>
-      <StatCard icon={Accessibility} label="MBPK" value={cohort.mbpk} tone="purple"/>
-      <StatCard icon={Target} label={selectedRow ? `Jumlah MTM — ${selectedRow.subject_name}` : 'Jumlah MTM'} value={selectedRow ? `${mtmCount} (${Number(selectedRow.mtm_pct || 0).toFixed(1)}%)` : '—'} hint={selectedRow ? undefined : 'Pilih mata pelajaran'} tone="green"/>
+      <StatCard icon={Accessibility} label="MBPK" value={cohort.mbpk}/>
+      <StatCard icon={Target} label={selectedRow ? `Jumlah MTM — ${selectedRow.subject_name}` : 'Jumlah MTM'} value={selectedRow ? `${mtmCount} (${Number(selectedRow.mtm_pct || 0).toFixed(1)}%)` : '—'} hint={selectedRow ? undefined : 'Pilih mata pelajaran'} tone="amber"/>
       <StatCard icon={AlertTriangle} label={selectedRow ? `Jumlah Intervensi — ${selectedRow.subject_name}` : 'Jumlah Intervensi'} value={selectedRow ? `${interventionCount} (${Number(selectedRow.intervention_pct || 0).toFixed(1)}%)` : '—'} hint={selectedRow ? 'Gred F' : 'Pilih mata pelajaran'} tone="red"/>
     </div>
     <div className="subject-analysis-list">{visibleRows.map((r) => {
