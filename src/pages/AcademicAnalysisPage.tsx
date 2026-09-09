@@ -1,12 +1,11 @@
-import { Accessibility, AlertTriangle, CalendarCheck, FileQuestion, Printer, Target, Users } from 'lucide-react';
+import { Accessibility, AlertTriangle, CalendarCheck, FileQuestion, Printer, Target, Users, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { DistributionBars } from '../components/DistributionBars';
+import { Bar, BarChart, CartesianGrid, LabelList, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { GlassCard } from '../components/GlassCard';
 import { PageHeader } from '../components/PageHeader';
 import { StatCard } from '../components/StatCard';
 import { getAssessments, getAvailableYears, getClasses } from '../lib/data';
-import { buildAcademicSummary } from '../lib/grade';
+import { buildAcademicSummary, gradeFromScore } from '../lib/grade';
 import { GRADE_ORDER } from '../lib/constants';
 import { supabase } from '../lib/supabase';
 import type { Assessment, Subject } from '../lib/types';
@@ -16,6 +15,8 @@ type StudentRow = { id: string; name: string; oku_status: string | null };
 type MarkRow = { assessment_id: string; enrolment_id: string; subject_id: string; score: number | null; grade: string | null };
 type BenchmarkRow = { enrolment_id: string; subject_id: string; tov: number | null; etr: number | null };
 type OfferingRow = { subject_id: string; year_level: number; ar_enabled: boolean; uasa_enabled: boolean };
+type Drilldown = { eventCode: string; grade: string; names: string[] } | null;
+type ProgressEvent = { code: string; label: string; kind: 'TOV' | 'AR' | 'ETR'; assessmentId?: string; labelKey: string };
 
 export function AcademicAnalysisPage() {
   const [years, setYears] = useState<number[]>([]);
@@ -34,6 +35,7 @@ export function AcademicAnalysisPage() {
   const [offerings, setOfferings] = useState<OfferingRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [drilldown, setDrilldown] = useState<Drilldown>(null);
 
   useEffect(() => {
     getAvailableYears().then((ys) => { setYears(ys); setYear(ys[0]); }).catch((e) => setError(e.message));
@@ -55,21 +57,21 @@ export function AcademicAnalysisPage() {
   async function loadScope() {
     setLoading(true); setError('');
     try {
-      let eq = supabase.from('v2_enrolments').select('id,student_id,class_name,year_level').eq('school_year', year);
-      if (className !== 'ALL') eq = eq.eq('class_name', className);
-      const er = await eq;
-      if (er.error) throw er.error;
-      const scopedEnrolments = (er.data || []) as EnrolmentRow[];
+      let enrolmentQuery = supabase.from('v2_enrolments').select('id,student_id,class_name,year_level').eq('school_year', year);
+      if (className !== 'ALL') enrolmentQuery = enrolmentQuery.eq('class_name', className);
+      const enrolmentResult = await enrolmentQuery;
+      if (enrolmentResult.error) throw enrolmentResult.error;
+      const scopedEnrolments = (enrolmentResult.data || []) as EnrolmentRow[];
       setEnrolments(scopedEnrolments);
 
       const enrolmentIds = scopedEnrolments.map((e) => e.id);
       const studentIds = [...new Set(scopedEnrolments.map((e) => e.student_id))];
-      const academicAssessmentIds = assessments.filter((a) => a.kind === 'AR' || a.kind === 'UASA').map((a) => a.id);
+      const arAssessmentIds = assessments.filter((a) => a.kind === 'AR').map((a) => a.id);
 
       const [studentResult, currentResult, trendResult, benchmarkResult, offeringResult] = await Promise.all([
         studentIds.length ? supabase.from('v2_students').select('id,name,oku_status').in('id', studentIds) : Promise.resolve({ data: [], error: null }),
         enrolmentIds.length ? supabase.from('v2_academic_marks').select('assessment_id,enrolment_id,subject_id,score,grade').eq('assessment_id', assessmentId).in('enrolment_id', enrolmentIds) : Promise.resolve({ data: [], error: null }),
-        enrolmentIds.length && academicAssessmentIds.length ? supabase.from('v2_academic_marks').select('assessment_id,enrolment_id,subject_id,score,grade').in('assessment_id', academicAssessmentIds).in('enrolment_id', enrolmentIds) : Promise.resolve({ data: [], error: null }),
+        enrolmentIds.length && arAssessmentIds.length ? supabase.from('v2_academic_marks').select('assessment_id,enrolment_id,subject_id,score,grade').in('assessment_id', arAssessmentIds).in('enrolment_id', enrolmentIds) : Promise.resolve({ data: [], error: null }),
         enrolmentIds.length ? supabase.from('v2_academic_benchmarks').select('enrolment_id,subject_id,tov,etr').in('enrolment_id', enrolmentIds) : Promise.resolve({ data: [], error: null }),
         supabase.from('v2_subject_offerings').select('subject_id,year_level,ar_enabled,uasa_enabled')
       ]);
@@ -98,21 +100,24 @@ export function AcademicAnalysisPage() {
   }
 
   const assessment = assessments.find((a) => a.id === assessmentId);
-  const assessmentById = useMemo(() => new Map(assessments.map((a) => [a.id, a])), [assessments]);
   const subjectById = useMemo(() => new Map(subjects.map((s) => [s.id, s])), [subjects]);
   const studentById = useMemo(() => new Map(students.map((s) => [s.id, s])), [students]);
   const enrolmentById = useMemo(() => new Map(enrolments.map((e) => [e.id, e])), [enrolments]);
+  const arAssessments = useMemo(() => assessments.filter((a) => a.kind === 'AR').sort((a, b) => Number(a.sequence_no || 0) - Number(b.sequence_no || 0)), [assessments]);
 
   const subjectGroups = useMemo(() => {
     const map = new Map<string, { subject: Subject; rows: MarkRow[] }>();
-    marks.forEach((row) => {
+    [...marks, ...trendMarks].forEach((row) => {
       const subject = subjectById.get(row.subject_id);
       if (!subject) return;
       if (!map.has(subject.code)) map.set(subject.code, { subject, rows: [] });
-      map.get(subject.code)!.rows.push(row);
+    });
+    marks.forEach((row) => {
+      const subject = subjectById.get(row.subject_id);
+      if (subject) map.get(subject.code)?.rows.push(row);
     });
     return [...map.values()].sort((a, b) => a.subject.name_ms.localeCompare(b.subject.name_ms));
-  }, [marks, subjectById]);
+  }, [marks, trendMarks, subjectById]);
 
   useEffect(() => {
     if (!subjectGroups.length) { setSubjectCode(''); return; }
@@ -140,25 +145,21 @@ export function AcademicAnalysisPage() {
   const tovAverage = average(selectedBenchmarks.map((b) => b.tov));
   const etrAverage = average(selectedBenchmarks.map((b) => b.etr));
 
+  const progressEvents = useMemo<ProgressEvent[]>(() => {
+    const ars = arAssessments.map((a) => ({ code: a.code, label: a.code, kind: 'AR' as const, assessmentId: a.id, labelKey: `${a.code}__label` }));
+    return [{ code: 'TOV', label: 'TOV', kind: 'TOV', labelKey: 'TOV__label' }, ...ars, { code: 'ETR', label: 'ETR', kind: 'ETR', labelKey: 'ETR__label' }];
+  }, [arAssessments]);
+
   const trajectory = useMemo(() => {
     if (!selectedSubject) return [];
-    const map = new Map<string, MarkRow[]>();
-    trendMarks.filter((m) => m.subject_id === selectedSubject.id).forEach((m) => {
-      const a = assessmentById.get(m.assessment_id);
-      if (!a) return;
-      if (!map.has(a.code)) map.set(a.code, []);
-      map.get(a.code)!.push(m);
-    });
-    const points: Array<{ code: string; value: number; order: number }> = [];
-    if (tovAverage !== null) points.push({ code: 'TOV', value: round1(tovAverage), order: -1 });
-    [...map.entries()].forEach(([code, rows]) => {
-      const a = assessments.find((x) => x.code === code);
+    return progressEvents.map((event) => {
+      if (event.kind === 'TOV') return { code: event.code, value: tovAverage === null ? null : round1(tovAverage) };
+      if (event.kind === 'ETR') return { code: event.code, value: etrAverage === null ? null : round1(etrAverage) };
+      const rows = trendMarks.filter((m) => m.subject_id === selectedSubject.id && m.assessment_id === event.assessmentId);
       const avg = buildAcademicSummary(rows).averageScore;
-      if (avg !== null) points.push({ code, value: round1(avg), order: a?.kind === 'UASA' ? 900 : Number(a?.sequence_no || code.replace(/\D/g, '') || 500) });
-    });
-    if (etrAverage !== null) points.push({ code: 'ETR', value: round1(etrAverage), order: 999 });
-    return points.sort((a, b) => a.order - b.order);
-  }, [selectedSubject, trendMarks, assessmentById, assessments, tovAverage, etrAverage]);
+      return { code: event.code, value: avg === null ? null : round1(avg) };
+    }).filter((x) => x.value !== null);
+  }, [selectedSubject, progressEvents, trendMarks, tovAverage, etrAverage]);
 
   const interventionRows = useMemo(() => currentRows.filter((r) => (r.grade || '').toUpperCase() === 'F' || (r.score !== null && Number(r.score) <= 19)).map((r) => {
     const enrolment = enrolmentById.get(r.enrolment_id);
@@ -166,7 +167,29 @@ export function AcademicAnalysisPage() {
     return { id: r.enrolment_id, name: student?.name || '—', grade: r.grade || 'F', score: r.score };
   }).sort((a, b) => (a.score ?? 999) - (b.score ?? 999) || a.name.localeCompare(b.name)), [currentRows, enrolmentById, studentById]);
 
-  const gradeItems = GRADE_ORDER.map((grade) => ({ label: grade, count: summary.grades[grade], pct: summary.total ? summary.grades[grade] / summary.total * 100 : 0 }));
+  const gradeProgression = useMemo(() => {
+    if (!selectedSubject) return [];
+    return GRADE_ORDER.map((grade) => {
+      const row: Record<string, string | number> = { grade };
+      progressEvents.forEach((event) => {
+        const people = gradeMembers(event, grade, selectedSubject.id, selectedBenchmarks, trendMarks, enrolmentById, studentById);
+        const total = event.kind === 'AR'
+          ? trendMarks.filter((m) => m.subject_id === selectedSubject.id && m.assessment_id === event.assessmentId).length
+          : selectedBenchmarks.filter((b) => event.kind === 'TOV' ? b.tov !== null : b.etr !== null).length;
+        const pct = total ? people.length / total * 100 : 0;
+        row[event.code] = people.length;
+        row[event.labelKey] = `${people.length} (${pct.toFixed(1)}%)`;
+      });
+      return row;
+    });
+  }, [selectedSubject, progressEvents, selectedBenchmarks, trendMarks, enrolmentById, studentById]);
+
+  function openGradeDrilldown(event: ProgressEvent, grade: string) {
+    if (!selectedSubject || !grade) return;
+    const names = gradeMembers(event, grade, selectedSubject.id, selectedBenchmarks, trendMarks, enrolmentById, studentById).map((x) => x.name);
+    setDrilldown({ eventCode: event.code, grade, names });
+  }
+
   const currentAverage = summary.averageScore;
   const deltaTov = currentAverage !== null && tovAverage !== null ? currentAverage - tovAverage : null;
   const gapEtr = currentAverage !== null && etrAverage !== null ? etrAverage - currentAverage : null;
@@ -199,10 +222,14 @@ export function AcademicAnalysisPage() {
     </div>
 
     <div className="diagnostic-grid">
-      <GlassCard className="chart-card trajectory-card">
-        <div className="card-toolbar"><div><h2>Trajektori Prestasi</h2><p>{classDisplay} · {selectedSubject?.name_ms || ''}</p></div><div className="status-chip">{assessment?.code || '—'}</div></div>
-        <div className="chart-height large">{loading ? <div className="empty-inline">Memuatkan analisis…</div> : trajectory.length ? <ResponsiveContainer width="100%" height="100%"><LineChart data={trajectory} margin={{top:18,right:24,bottom:8,left:2}}><CartesianGrid vertical={false}/><XAxis dataKey="code" tickLine={false} axisLine={{stroke:'#aaa89d'}}/><YAxis domain={[0,100]} tickLine={false} axisLine={false}/><Tooltip formatter={(v) => [`${v}`, 'Purata']} contentStyle={{background:'#fffefa',border:'1px solid #c9c7bd',borderRadius:2,color:'#17191d'}}/>{etrAverage !== null && <ReferenceLine y={etrAverage} stroke="#777b76" strokeDasharray="5 5"/>}<Line type="linear" dataKey="value" stroke="#d5a900" strokeWidth={3} dot={{r:5,fill:'#f2c313',stroke:'#17191d',strokeWidth:1.5}} activeDot={{r:6}}/></LineChart></ResponsiveContainer> : <div className="empty-inline">Tiada data trajektori.</div>}</div>
-      </GlassCard>
+      <div className="trajectory-stack">
+        <GlassCard className="chart-card trajectory-card">
+          <div className="card-toolbar"><div><h2>Trajektori Prestasi</h2></div><div className="status-chip">TOV → AR → ETR</div></div>
+          <div className="chart-height large">{loading ? <div className="empty-inline">Memuatkan analisis…</div> : trajectory.length ? <ResponsiveContainer width="100%" height="100%"><BarChart data={trajectory} margin={{top:28,right:24,bottom:8,left:2}}><CartesianGrid vertical={false}/><XAxis dataKey="code" tickLine={false} axisLine={{stroke:'#aaa89d'}}/><YAxis domain={[0,100]} tickLine={false} axisLine={false}/><Tooltip formatter={(v) => [`${v}`, 'Purata']} contentStyle={{background:'#fffefa',border:'1px solid #c9c7bd',borderRadius:2,color:'#17191d'}}/><Bar dataKey="value" fill="#d5a900" radius={[2,2,0,0]}><LabelList dataKey="value" position="top" formatter={(value: any) => Number(value).toFixed(1)}/></Bar></BarChart></ResponsiveContainer> : <div className="empty-inline">Tiada data trajektori.</div>}</div>
+        </GlassCard>
+
+        <GlassCard className="summary-panel intervention-card intervention-under-trajectory"><div className="intervention-body"><h3>Senarai Murid Memerlukan Intervensi ({interventionRows.length})</h3>{interventionRows.length ? <table className="intervention-table"><thead><tr><th>Bil</th><th>Nama Murid</th><th>Gred</th><th>Markah</th></tr></thead><tbody>{interventionRows.map((r,i) => <tr key={r.id}><td>{i+1}</td><td>{r.name}</td><td className="score">{r.grade}</td><td>{r.score ?? '—'}</td></tr>)}</tbody></table> : <div className="empty-inline">Tiada murid dalam kategori intervensi.</div>}</div></GlassCard>
+      </div>
 
       <GlassCard className="target-panel">
         <div><h3>Sasaran & Pencapaian</h3><div className="target-number">{currentAverage === null ? '—' : currentAverage.toFixed(1)} <small>/ {etrAverage === null ? '—' : etrAverage.toFixed(1)}</small></div></div>
@@ -210,14 +237,45 @@ export function AcademicAnalysisPage() {
       </GlassCard>
     </div>
 
-    <div className="analysis-lower-grid">
-      <GlassCard className="summary-panel"><h3>Taburan Gred {assessment?.code || ''}</h3><DistributionBars items={gradeItems}/></GlassCard>
-      <GlassCard className="summary-panel"><h3>Rumusan Prestasi</h3><div className="summary-row"><span>Purata TOV</span><strong>{tovAverage === null ? '—' : tovAverage.toFixed(1)}</strong><span/></div><div className="summary-row"><span>Purata {assessment?.code || 'AR'}</span><strong>{currentAverage === null ? '—' : currentAverage.toFixed(1)}</strong><span/></div><div className="summary-row"><span>ETR</span><strong>{etrAverage === null ? '—' : etrAverage.toFixed(1)}</strong><span/></div><div className="summary-row"><span>MTM</span><strong>{summary.mtm}</strong><span>{summary.mtmPct.toFixed(1)}%</span></div><div className="summary-row"><span>Intervensi</span><strong>{summary.intervention}</strong><span>{summary.interventionPct.toFixed(1)}%</span></div></GlassCard>
-      <GlassCard className="summary-panel intervention-card"><div className="intervention-body"><h3 style={{color:'var(--red)'}}>Senarai Murid Intervensi ({interventionRows.length})</h3>{interventionRows.length ? <table className="intervention-table"><thead><tr><th>Bil</th><th>Nama Murid</th><th>Gred</th><th>Markah</th></tr></thead><tbody>{interventionRows.map((r,i) => <tr key={r.id}><td>{i+1}</td><td>{r.name}</td><td className="score">{r.grade}</td><td>{r.score ?? '—'}</td></tr>)}</tbody></table> : <div className="empty-inline">Tiada murid dalam kategori intervensi.</div>}</div></GlassCard>
-    </div>
+    <GlassCard className="summary-panel grade-progression-card">
+      <div className="card-toolbar grade-chart-toolbar"><div><h2>Taburan Gred</h2></div><span className="status-chip">Klik bar untuk senarai murid</span></div>
+      <div className="grade-progression-chart">{selectedSubject && gradeProgression.length ? <ResponsiveContainer width="100%" height="100%"><BarChart data={gradeProgression} margin={{top:58,right:24,bottom:18,left:6}} barCategoryGap="12%"><CartesianGrid vertical={false}/><XAxis dataKey="grade" tickLine={false} axisLine={{stroke:'#aaa89d'}}/><YAxis allowDecimals={false} tickLine={false} axisLine={false}/><Tooltip formatter={(value, name) => [`${value} murid`, String(name)]} contentStyle={{background:'#fffefa',border:'1px solid #c9c7bd',borderRadius:2,color:'#17191d'}}/><Legend verticalAlign="bottom" height={32}/>{progressEvents.map((event, index) => <Bar key={event.code} dataKey={event.code} name={event.label} fill={eventColor(index, progressEvents.length)} radius={[2,2,0,0]} cursor="pointer" onClick={(data: any) => openGradeDrilldown(event, String(data?.payload?.grade || data?.grade || ''))}><LabelList dataKey={event.labelKey} position="top" className="grade-bar-label"/></Bar>)}</BarChart></ResponsiveContainer> : <div className="empty-inline">Tiada data taburan gred.</div>}</div>
+    </GlassCard>
+
+    <GlassCard className="summary-panel performance-summary-wide"><h3>Rumusan Prestasi</h3><div className="performance-summary-grid"><div className="summary-row"><span>Purata TOV</span><strong>{tovAverage === null ? '—' : tovAverage.toFixed(1)}</strong></div><div className="summary-row"><span>Purata {assessment?.code || 'AR'}</span><strong>{currentAverage === null ? '—' : currentAverage.toFixed(1)}</strong></div><div className="summary-row"><span>ETR</span><strong>{etrAverage === null ? '—' : etrAverage.toFixed(1)}</strong></div><div className="summary-row"><span>MTM</span><strong>{summary.mtm} ({summary.mtmPct.toFixed(1)}%)</strong></div><div className="summary-row"><span>Intervensi</span><strong>{summary.intervention} ({summary.interventionPct.toFixed(1)}%)</strong></div></div></GlassCard>
+
+    {drilldown && <div className="grade-modal-backdrop no-print" role="dialog" aria-modal="true" aria-label={`Murid gred ${drilldown.grade} ${drilldown.eventCode}`} onMouseDown={(e) => { if (e.currentTarget === e.target) setDrilldown(null); }}>
+      <div className="grade-modal"><div className="grade-modal-head"><div><span>{drilldown.eventCode}</span><h2>Gred {drilldown.grade}</h2></div><button className="icon-button" onClick={() => setDrilldown(null)} aria-label="Tutup"><X size={18}/></button></div><div className="grade-modal-count">{drilldown.names.length} murid</div>{drilldown.names.length ? <ol className="grade-modal-list">{drilldown.names.map((name) => <li key={name}>{name}</li>)}</ol> : <div className="empty-inline">Tiada murid dalam kategori ini.</div>}</div>
+    </div>}
   </>;
 }
 
+function gradeMembers(event: ProgressEvent, grade: string, subjectId: string, benchmarkRows: BenchmarkRow[], markRows: MarkRow[], enrolmentById: Map<string, EnrolmentRow>, studentById: Map<string, StudentRow>) {
+  const members: Array<{ enrolmentId: string; name: string }> = [];
+  if (event.kind === 'AR') {
+    markRows.filter((m) => m.subject_id === subjectId && m.assessment_id === event.assessmentId && String(m.grade || '').toUpperCase() === grade).forEach((m) => {
+      const enrolment = enrolmentById.get(m.enrolment_id);
+      const student = enrolment ? studentById.get(enrolment.student_id) : null;
+      members.push({ enrolmentId: m.enrolment_id, name: student?.name || '—' });
+    });
+  } else {
+    benchmarkRows.forEach((b) => {
+      const score = event.kind === 'TOV' ? b.tov : b.etr;
+      if (score === null || grade === 'TH' || gradeFromScore(Number(score)) !== grade) return;
+      const enrolment = enrolmentById.get(b.enrolment_id);
+      const student = enrolment ? studentById.get(enrolment.student_id) : null;
+      members.push({ enrolmentId: b.enrolment_id, name: student?.name || '—' });
+    });
+  }
+  return members.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function eventColor(index: number, total: number) {
+  if (index === 0) return '#17191d';
+  if (index === total - 1) return '#d5a900';
+  const palette = ['#777a75', '#aaa58f', '#8a7550', '#b9a969', '#5d605d', '#c0b480'];
+  return palette[(index - 1) % palette.length];
+}
 function average(values: Array<number | null>) {
   const valid = values.filter((v): v is number => v !== null && Number.isFinite(Number(v))).map(Number);
   return valid.length ? valid.reduce((a, b) => a + b, 0) / valid.length : null;
