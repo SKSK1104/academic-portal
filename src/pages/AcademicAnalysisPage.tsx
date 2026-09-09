@@ -17,7 +17,7 @@ interface MarkRow {
   grade: string | null;
   subject_id: string;
   subjects: { code: string; name_ms: string } | null;
-  enrolments: { class_name: string; students: { name: string } | null } | null;
+  enrolments: { class_name: string; v2_students: { name: string } | null } | null;
   assessments: { code: string; kind: string; sequence_no: number | null } | null;
 }
 
@@ -49,13 +49,13 @@ export function AcademicAnalysisPage() {
   async function load() {
     setLoading(true); setError('');
     try {
-      let q = supabase.from('v2_academic_marks').select('score,grade,subject_id,subjects(code,name_ms),enrolments!inner(class_name,students(name)),assessments!inner(code,kind,sequence_no)')
+      let q = supabase.from('v2_academic_marks').select('score,grade,subject_id,subjects(code,name_ms),enrolments!inner(class_name,v2_students(name)),assessments!inner(code,kind,sequence_no)')
         .eq('assessment_id', assessmentId);
       if (className !== 'ALL') q = q.eq('enrolments.class_name', className);
       const { data, error } = await q; if (error) throw error;
       setRows((data || []) as any);
 
-      let tq = supabase.from('v2_academic_marks').select('score,grade,subject_id,subjects(code,name_ms),enrolments!inner(class_name,students(name)),assessments!inner(code,kind,sequence_no,school_year)')
+      let tq = supabase.from('v2_academic_marks').select('score,grade,subject_id,subjects(code,name_ms),enrolments!inner(class_name,v2_students(name)),assessments!inner(code,kind,sequence_no,school_year)')
         .eq('assessments.school_year', year);
       if (className !== 'ALL') tq = tq.eq('enrolments.class_name', className);
       const tr = await tq; if (tr.error) throw tr.error;
@@ -73,7 +73,7 @@ export function AcademicAnalysisPage() {
   }
 
   const summary = useMemo(() => buildAcademicSummary(rows), [rows]);
-  const uniqueStudents = useMemo(() => new Set(rows.map((r) => `${r.enrolments?.class_name || ''}|${r.enrolments?.students?.name || ''}`).filter((x) => !x.endsWith('|'))).size, [rows]);
+  const uniqueStudents = useMemo(() => new Set(rows.map((r) => `${r.enrolments?.class_name || ''}|${r.enrolments?.v2_students?.name || ''}`).filter((x) => !x.endsWith('|'))).size, [rows]);
   const subjectGroups = useMemo(() => {
     const map = new Map<string, { name: string; rows: MarkRow[] }>();
     rows.forEach((r) => {
@@ -142,7 +142,7 @@ export function AcademicAnalysisPage() {
     <div className="subject-analysis-list">
       {loading ? <GlassCard className="loading-card">Memuatkan analisis...</GlassCard> : subjectGroups.map((group) => {
         const items = GRADE_ORDER.map((grade) => ({ label: grade, count: group.summary.grades[grade], pct: group.summary.total ? (group.summary.grades[grade] / group.summary.total) * 100 : 0 }));
-        const interventionNames = group.rows.filter((r) => (r.grade || '') === 'F' || (r.score !== null && r.score <= 19)).map((r) => r.enrolments?.students?.name).filter(Boolean) as string[];
+        const interventionNames = group.rows.filter((r) => (r.grade || '') === 'F' || (r.score !== null && r.score <= 19)).map((r) => r.enrolments?.v2_students?.name).filter(Boolean) as string[];
         return <GlassCard className="subject-card" key={group.code}>
           <div className="subject-card-head"><div><div className="eyebrow">{selectedAssessment?.code}</div><h2>{group.name}</h2></div><div className="metric-pair"><span>MTM<strong>{group.summary.mtmPct.toFixed(1)}%</strong></span><span>Calon<strong>{group.summary.total}</strong></span></div></div>
           <div className="subject-card-body"><DistributionBars items={items}/><InterventionPanel count={group.summary.intervention} percentage={group.summary.interventionPct} rule="F (≤19)"><details className="intervention-details"><summary>Lihat murid ({interventionNames.length})</summary>{interventionNames.length ? <ul>{interventionNames.map((n) => <li key={n}>{n}</li>)}</ul> : <p>Tiada murid.</p>}</details></InterventionPanel></div>
