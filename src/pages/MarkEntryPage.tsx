@@ -66,7 +66,8 @@ export function MarkEntryPage() {
         .from('v2_enrolments')
         .select('id,student_id,students:v2_students!v2_enrolments_student_id_fkey(id,name)')
         .eq('school_year', year)
-        .eq('class_name', className);
+        .eq('class_name', className)
+        .eq('is_active', true);
       if (e1) throw e1;
       const ids = (enrolments || []).map((x: any) => x.id);
       if (!ids.length) { setRows([]); return; }
