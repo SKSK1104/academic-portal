@@ -42,7 +42,7 @@ export function PublicPbdPage() {
   const mtmCount=selectedRow?Number(selectedRow.TP3||0)+Number(selectedRow.TP4||0)+Number(selectedRow.TP5||0)+Number(selectedRow.TP6||0):0;
   const interventionCount=selectedRow?Number(selectedRow.TP1||0)+Number(selectedRow.TP2||0):0;
 
-  return <div className="public-report"><PageHeader eyebrow="LAPORAN UMUM" title="Pelaporan PBD" description="Rumusan TP tanpa maklumat peribadi murid."/>
+  return <div className="public-report"><PageHeader title="Pelaporan PBD" />
     <GlassCard className="filter-card"><div className="filter-grid four">
       <label>Tahun<select value={year} onChange={e=>setYear(Number(e.target.value))}>{years.map(y=><option key={y}>{y}</option>)}</select></label>
       <label>Kelas<select value={className} onChange={e=>setClassName(e.target.value)}><option value="ALL">Seluruh Sekolah</option>{classes.map(c=><option key={`${c.year_level}-${c.class_name}`} value={c.class_name}>{c.year_level} {c.class_name.charAt(0)+c.class_name.slice(1).toLowerCase()}</option>)}</select></label>
@@ -52,15 +52,15 @@ export function PublicPbdPage() {
     {error&&<div className="notice">{error}</div>}
     <div className="stats-grid four">
       <StatCard icon={Users} label="Bilangan Calon" value={cohort.candidates}/>
-      <StatCard icon={Accessibility} label="MBPK" value={cohort.mbpk} tone="purple"/>
-      <StatCard icon={Target} label={selectedRow?`Jumlah MTM — ${selectedRow.subject_name}`:'Jumlah MTM'} value={selectedRow?`${mtmCount} (${Number(selectedRow.mtm_pct||0).toFixed(1)}%)`:'—'} hint={selectedRow?undefined:'Pilih mata pelajaran'} tone="green"/>
+      <StatCard icon={Accessibility} label="MBPK" value={cohort.mbpk}/>
+      <StatCard icon={Target} label={selectedRow?`Jumlah MTM — ${selectedRow.subject_name}`:'Jumlah MTM'} value={selectedRow?`${mtmCount} (${Number(selectedRow.mtm_pct||0).toFixed(1)}%)`:'—'} hint={selectedRow?undefined:'Pilih mata pelajaran'} tone="amber"/>
       <StatCard icon={AlertTriangle} label={selectedRow?`Jumlah Intervensi — ${selectedRow.subject_name}`:'Jumlah Intervensi'} value={selectedRow?`${interventionCount} (${Number(selectedRow.intervention_pct||0).toFixed(1)}%)`:'—'} hint={selectedRow?'TP1–TP2':'Pilih mata pelajaran'} tone="red"/>
     </div>
     <div className="subject-analysis-list">{visibleRows.map(r=>{
       const items=TP_ORDER.map(tp=>({label:tp,count:Number(r[tp]||0),pct:r.total?Number(r[tp]||0)/r.total*100:0}));
       const subjectMtm=Number(r.TP3||0)+Number(r.TP4||0)+Number(r.TP5||0)+Number(r.TP6||0);
       const subjectIntervention=Number(r.TP1||0)+Number(r.TP2||0);
-      return <GlassCard className="subject-card" key={r.subject_code}><div className="subject-card-head"><div><div className="eyebrow">PBD</div><h2>{r.subject_name}</h2></div><div className="metric-pair"><span>Bilangan Calon<strong>{Number(r.total||0)}</strong></span><span>MTM<strong>{subjectMtm} ({Number(r.mtm_pct||0).toFixed(1)}%)</strong></span><span>Intervensi<strong>{subjectIntervention} ({Number(r.intervention_pct||0).toFixed(1)}%)</strong></span></div></div><div className="subject-card-body single"><DistributionBars items={items}/></div></GlassCard>
+      return <GlassCard className="subject-card" key={r.subject_code}><div className="subject-card-head"><div><div className="eyebrow">{assessment}</div><h2>{r.subject_name}</h2></div><div className="metric-pair"><span>Bilangan Calon<strong>{Number(r.total||0)}</strong></span><span>MTM<strong>{subjectMtm} ({Number(r.mtm_pct||0).toFixed(1)}%)</strong></span><span>Intervensi<strong>{subjectIntervention} ({Number(r.intervention_pct||0).toFixed(1)}%)</strong></span></div></div><div className="subject-card-body single"><DistributionBars items={items}/></div></GlassCard>;
     })}</div>
   </div>;
 }
