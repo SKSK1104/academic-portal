@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router';
 import { PublicShell, TeacherShell } from './components/AppShell';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { SecretaryAssessmentSetup } from './components/SecretaryAssessmentSetup';
+import { StudentManagement } from './components/StudentManagement';
 
 const AcademicAnalysisPage = lazy(() => import('./pages/AcademicAnalysisPage').then((m) => ({ default: m.AcademicAnalysisPage })));
 const HomePage = lazy(() => import('./pages/HomePage').then((m) => ({ default: m.HomePage })));
@@ -21,7 +22,7 @@ function RouteLoader() {
 }
 
 function ImportDataRoute() {
-  return <><SecretaryAssessmentSetup/><ImportCenterPage/></>;
+  return <><SecretaryAssessmentSetup/><StudentManagement/><ImportCenterPage/></>;
 }
 
 export default function App() {
