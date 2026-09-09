@@ -104,6 +104,11 @@ export async function parseArWorkbook(file: File): Promise<ArWorkbookRow[]> {
       const ar1 = ar1Cols.score === null ? null : n(row[ar1Cols.score]);
       const gradeRaw = ar1Cols.grade === null ? '' : upper(row[ar1Cols.grade]);
       const etr = etrCols.score === null ? null : n(row[etrCols.score]);
+      const ar1Grade = gradeRaw === 'TH'
+        ? 'TH'
+        : ar1 === null
+          ? null
+          : (gradeRaw && gradeRaw !== '#N/A' ? gradeRaw : gradeFromScore(ar1));
 
       out.push({
         fileName: file.name,
@@ -114,7 +119,7 @@ export async function parseArWorkbook(file: File): Promise<ArWorkbookRow[]> {
         studentName,
         tov,
         ar1,
-        ar1Grade: ar1 === null ? null : (gradeRaw && gradeRaw !== '#N/A' ? gradeRaw : gradeFromScore(ar1)),
+        ar1Grade,
         etr
       });
     }
