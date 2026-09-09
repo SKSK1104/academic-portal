@@ -28,7 +28,7 @@ export async function getSubjectsForYear(yearLevel: number, mode: 'AR' | 'UASA' 
   const flag = mode === 'AR' ? 'ar_enabled' : mode === 'UASA' ? 'uasa_enabled' : 'pbd_enabled';
   const { data, error } = await supabase
     .from('v2_subject_offerings')
-    .select('subjects(id,code,name_ms,name_en)')
+    .select('subjects:v2_subjects!v2_subject_offerings_subject_id_fkey(id,code,name_ms,name_en)')
     .eq('year_level', yearLevel)
     .eq(flag, true);
   if (error) throw error;
