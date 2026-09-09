@@ -93,7 +93,8 @@ export function ImportCenterPage() {
       if (preview.kind === 'ROSTER') {
         const rows = preview.payload as RosterImportRow[];
         await importRoster(rows);
-        await recordSimpleImport('ROSTER_CSV', preview.title, { rows: rows.length, summary: preview.summary });
+        const rosterType = preview.title.toLowerCase().endsWith('.xlsx') ? 'ROSTER_XLSX' : 'ROSTER_CSV';
+        await recordSimpleImport(rosterType, preview.title, { rows: rows.length, summary: preview.summary });
       }
       if (preview.kind === 'AR') {
         const rows = preview.payload as ArWorkbookRow[];
@@ -116,9 +117,23 @@ export function ImportCenterPage() {
 
   async function importRoster(rows: RosterImportRow[]) {
     const studentPayload = rows.map((r) => ({
-      student_id: r.studentId, name: r.name, mykid: r.mykid, dob_text: r.dob,
-      gender: r.gender, ethnicity: r.ethnicity, religion: r.religion,
-      oku_status: r.okuStatus, oku_category: r.okuCategory, oku_subcategory: r.okuSubcategory,
+      student_id: r.studentId,
+      name: r.name,
+      mykid: r.mykid,
+      dob_text: r.dob,
+      gender: r.gender,
+      ethnicity: r.ethnicity,
+      religion: r.religion,
+      hostel_status: r.hostelStatus,
+      hostel_name: r.hostelName,
+      oku_status: r.okuStatus,
+      oku_verified_date: r.okuVerifiedDate,
+      oku_registration_no: r.okuRegistrationNo,
+      oku_registered_date: r.okuRegisteredDate,
+      oku_card_date: r.okuCardDate,
+      oku_category: r.okuCategory,
+      oku_subcategory: r.okuSubcategory,
+      orphan_status: r.orphanStatus,
       updated_at: new Date().toISOString()
     }));
     const s = await supabase.from('v2_students').upsert(studentPayload, { onConflict: 'student_id' }).select('id,student_id');
@@ -244,7 +259,7 @@ export function ImportCenterPage() {
 
     const mismatches: string[] = [];
     for (const official of summaryImport.detected_metadata?.summary || []) {
-      let code = subjectCodeFromLabel(official.subject_label || '');
+      const code = subjectCodeFromLabel(official.subject_label || '');
       let actual;
       if (code === 'PAI_PM') {
         const pi = computed.get('PI'); const pm = computed.get('PM');
@@ -268,7 +283,7 @@ export function ImportCenterPage() {
   return <>
     <PageHeader eyebrow="AUTOMASI DATA" title="Import Center" description="Data diproses oleh portal. GitHub dan preprocessing tempatan tidak diperlukan untuk operasi biasa." />
     <div className="import-grid">
-      <ImportBox icon={Users} title="Roster Murid" desc="CSV rasmi IDME. Menjadi sumber murid dan kelas." accept=".csv" onFiles={handleRoster}/>
+      <ImportBox icon={Users} title="Roster Murid" desc="Excel/CSV rasmi IDME. Menjadi sumber profil murid, kelas dan data pentadbiran." accept=".xlsx,.csv" onFiles={handleRoster}/>
       <ImportBox icon={FileSpreadsheet} title="Migrasi AR1" desc="Pilih semua fail Excel Tahun 1–6 sekali gus." accept=".xlsx,.xls" multiple onFiles={handleAr}/>
       <GlassCard className="import-box">
         <div className="import-icon"><FileText/></div><h2>UASA / PBD PDF</h2><p>Portal mengenal pasti format PDF dan mengekstrak data.</p>
