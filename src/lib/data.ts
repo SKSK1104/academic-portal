@@ -9,7 +9,7 @@ export async function getAvailableYears(): Promise<number[]> {
 }
 
 export async function getClasses(schoolYear: number): Promise<Array<{ className: string; yearLevel: number }>> {
-  const { data, error } = await supabase.from('v2_enrolments').select('class_name,year_level').eq('school_year', schoolYear);
+  const { data, error } = await supabase.from('v2_enrolments').select('class_name,year_level').eq('school_year', schoolYear).eq('is_active', true);
   if (error) throw error;
   const map = new Map<string, number>();
   (data || []).forEach((row) => map.set(row.class_name, Number(row.year_level)));
