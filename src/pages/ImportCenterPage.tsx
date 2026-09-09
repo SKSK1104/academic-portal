@@ -1,22 +1,24 @@
-import { CheckCircle2, FileSpreadsheet, FileText, UploadCloud, Users, XCircle } from 'lucide-react';
+import { CheckCircle2, FileText, UploadCloud, Users, XCircle } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { GlassCard } from '../components/GlassCard';
 import { PageHeader } from '../components/PageHeader';
-import { parseArWorkbook, type ArWorkbookRow } from '../lib/importers/arWorkbook';
-import { parseAssessmentPdf } from '../lib/importers/pdfImport';
+import { parseAssessmentPdf, uploadAssessmentPdf } from '../lib/importers/pdfImport';
 import { parseRosterCsv, type RosterImportRow } from '../lib/importers/rosterCsv';
 import { subjectCodeFromLabel, religiousSubjectForStudent } from '../lib/subjects';
 import { supabase } from '../lib/supabase';
 import type { ParsedPdfDocument } from '../lib/types';
 
 interface PreviewState {
-  kind: 'ROSTER' | 'AR' | 'PDF';
+  kind: 'ROSTER' | 'PDF';
   title: string;
   summary: string[];
   warnings: string[];
+  blockers: string[];
   payload: unknown;
-  storagePath?: string;
+  file?: File;
 }
+
+type PbdRound = 'AUTO' | 'PBD1' | 'PBD2';
 
 function normalizeClassName(value: string) {
   return value.toUpperCase().replace(/^TAHUN\s+/, '').replace(/BESTARI/g, 'BISTARI').replace(/\s+/g, ' ').trim();
@@ -29,9 +31,16 @@ export function ImportCenterPage() {
   const [status, setStatus] = useState('');
   const [schoolYear, setSchoolYear] = useState(new Date().getFullYear());
   const [pdfHint, setPdfHint] = useState<'AUTO' | 'UASA' | 'PBD'>('AUTO');
+  const [pbdRound, setPbdRound] = useState<PbdRound>('AUTO');
   const [history, setHistory] = useState<any[]>([]);
 
-  const canConfirm = useMemo(() => preview && !busy, [preview, busy]);
+  const parsedPreview = preview?.kind === 'PDF' ? preview.payload as ParsedPdfDocument : null;
+  const roundForPreview = parsedPreview && isPbd(parsedPreview) ? resolvePbdRound(parsedPreview, pbdRound) : null;
+  const canConfirm = useMemo(() => {
+    if (!preview || busy || preview.blockers.length) return false;
+    if (preview.kind === 'PDF' && parsedPreview && isPbd(parsedPreview) && !roundForPreview) return false;
+    return true;
+  }, [preview, busy, parsedPreview, roundForPreview]);
 
   useEffect(() => { void loadHistory(); }, []);
 
@@ -40,7 +49,7 @@ export function ImportCenterPage() {
       .from('v2_imports')
       .select('id,created_at,school_year,import_type,file_name,status,validation_summary')
       .order('created_at', { ascending: false })
-      .limit(20);
+      .limit(30);
     if (!error) setHistory(data || []);
   }
 
@@ -50,36 +59,39 @@ export function ImportCenterPage() {
     try {
       const rows = await parseRosterCsv(file);
       const classes = [...new Set(rows.map((r) => r.className))];
-      setPreview({ kind: 'ROSTER', title: file.name, payload: rows, warnings: [], summary: [`${rows.length} murid`, `${classes.length} kelas`, `Tahun ${schoolYear}`] });
-    } catch (e: any) { setStatus(e.message || String(e)); }
-    finally { setBusy(false); }
-  }
-
-  async function handleAr(files: FileList | null) {
-    const selected = [...(files || [])]; if (!selected.length) return;
-    setBusy(true); setStatus('');
-    try {
-      const nested = await Promise.all(selected.map(parseArWorkbook));
-      const rows = nested.flat();
-      const classes = [...new Set(rows.map((r) => r.className))];
-      const subjects = [...new Set(rows.map((r) => r.subjectCode))];
-      const warnings = rows.filter((r) => !r.ar1 && r.ar1 !== 0).length ? ['Baris tanpa AR1 akan mengimport TOV/ETR sahaja.'] : [];
-      setPreview({ kind: 'AR', title: `${selected.length} fail AR1`, payload: rows, warnings, summary: [`${rows.length} rekod murid-subjek`, `${classes.length} kelas`, `${subjects.length} subjek`] });
+      setPreview({ kind: 'ROSTER', title: file.name, payload: rows, warnings: [], blockers: [], summary: [`${rows.length} murid`, `${classes.length} kelas`, `${schoolYear}`] });
     } catch (e: any) { setStatus(e.message || String(e)); }
     finally { setBusy(false); }
   }
 
   async function handlePdf(files: FileList | null) {
     const file = files?.[0]; if (!file) return;
-    setBusy(true); setStatus('Memuat naik dan membaca PDF...');
+    setBusy(true); setStatus('Membaca PDF…');
     try {
-      const { parsed, storagePath } = await parseAssessmentPdf(file, pdfHint);
+      const parsed = await parseAssessmentPdf(file, pdfHint, setStatus);
       const rowCount = parsed.rows?.length || 0;
       const summaryCount = parsed.summary?.length || 0;
+      const warnings = [...(parsed.warnings || [])];
+      const blockers: string[] = [];
+      const detectedYear = parsed.school_year ? Number(parsed.school_year) : null;
+
+      if (detectedYear && detectedYear !== schoolYear) {
+        blockers.push(`Tahun pada PDF ialah ${detectedYear}, bukan ${schoolYear}.`);
+      }
+      if (parsed.doc_type === 'UNKNOWN') blockers.push('Jenis dokumen tidak dapat dikenal pasti.');
+
+      if (parsed.class_name && rowCount) {
+        const expectedYear = detectedYear || schoolYear;
+        const className = normalizeClassName(parsed.class_name);
+        const roster = await supabase.from('v2_enrolments').select('id', { count: 'exact', head: true }).eq('school_year', expectedYear).eq('class_name', className);
+        if (roster.error) throw roster.error;
+        const rosterCount = roster.count || 0;
+        if (rosterCount && rosterCount !== rowCount) warnings.push(`PDF: ${rowCount} murid • Roster: ${rosterCount} murid`);
+      }
+
       setPreview({
-        kind: 'PDF', title: file.name, payload: parsed, storagePath,
-        warnings: parsed.warnings || [],
-        summary: [parsed.doc_type, `${parsed.class_name || 'Kelas tidak dikenal pasti'}`, rowCount ? `${rowCount} murid` : `${summaryCount} baris ringkasan`]
+        kind: 'PDF', title: file.name, payload: parsed, file, warnings, blockers,
+        summary: [displayDocType(parsed.doc_type), parsed.class_name ? displayClass(parsed.class_name, parsed.year_level) : 'Kelas belum dikenal pasti', rowCount ? `${rowCount} murid` : `${summaryCount} baris ringkasan`]
       });
       setStatus('');
     } catch (e: any) { setStatus(e.message || String(e)); }
@@ -87,22 +99,22 @@ export function ImportCenterPage() {
   }
 
   async function confirm() {
-    if (!preview) return;
-    setBusy(true); setStatus('Mengesahkan dan menyimpan...');
+    if (!preview || !canConfirm) return;
+    setBusy(true); setStatus('Mengesahkan dan menyimpan…');
     try {
       if (preview.kind === 'ROSTER') {
         const rows = preview.payload as RosterImportRow[];
         await importRoster(rows);
         const rosterType = preview.title.toLowerCase().endsWith('.xlsx') ? 'ROSTER_XLSX' : 'ROSTER_CSV';
         await recordSimpleImport(rosterType, preview.title, { rows: rows.length, summary: preview.summary });
+      } else {
+        const parsed = preview.payload as ParsedPdfDocument;
+        if (!preview.file) throw new Error('Fail PDF tidak lagi tersedia. Pilih semula fail.');
+        await importPdf(parsed, preview.file);
       }
-      if (preview.kind === 'AR') {
-        const rows = preview.payload as ArWorkbookRow[];
-        const skipped = await importAr(rows);
-        await recordSimpleImport('AR1_XLSX', preview.title, { rows: rows.length, skipped, summary: preview.summary });
-      }
-      if (preview.kind === 'PDF') await importPdf(preview.payload as ParsedPdfDocument, preview.storagePath || '');
-      setStatus('Import berjaya disimpan.'); setPreview(null); await loadHistory();
+      setStatus('Import berjaya disimpan.');
+      setPreview(null);
+      await loadHistory();
     } catch (e: any) { setStatus(e.message || String(e)); }
     finally { setBusy(false); }
   }
@@ -148,66 +160,82 @@ export function ImportCenterPage() {
     if (e.error) throw e.error;
   }
 
-  async function importAr(rows: ArWorkbookRow[]): Promise<number> {
-    const { data: assessment, error: ae } = await supabase.from('v2_assessments').upsert({
-      school_year: schoolYear, kind: 'AR', code: 'AR1', sequence_no: 1, title: 'Assessment Round 1', source_kind: 'xlsx', is_active: true
-    }, { onConflict: 'school_year,code' }).select('*').single();
-    if (ae) throw ae;
-    const { data: subjects, error: se } = await supabase.from('v2_subjects').select('id,code');
-    if (se) throw se;
-    const subjectMap = new Map((subjects || []).map((x: any) => [x.code, x.id]));
-    const { data: enrolments, error: ee } = await supabase.from('v2_enrolments').select('id,class_name,students(name)').eq('school_year', schoolYear);
-    if (ee) throw ee;
-    const enrolMap = new Map<string, string>();
-    (enrolments || []).forEach((e: any) => enrolMap.set(`${normalizeClassName(e.class_name)}|${normalizeName(e.students?.name || '')}`, e.id));
+  async function importPdf(parsed: ParsedPdfDocument, file: File) {
+    const year = Number(parsed.school_year || schoolYear);
+    if (parsed.school_year && Number(parsed.school_year) !== schoolYear) throw new Error(`PDF ini ialah tahun ${parsed.school_year}. Pilihan semasa ialah ${schoolYear}.`);
+    if (parsed.doc_type === 'UNKNOWN') throw new Error('Jenis PDF tidak dapat dikenal pasti.');
 
+    const isUasa = parsed.doc_type === 'UASA_INDIVIDUAL';
+    const pbdCode = isPbd(parsed) ? resolvePbdRound(parsed, pbdRound) : null;
+    if (isPbd(parsed) && !pbdCode) throw new Error('Pilih PBD 1 atau PBD 2 sebelum mengesahkan import.');
+
+    if (isUasa) {
+      const existing = await supabase.from('v2_assessments').select('id').eq('school_year', year).eq('kind', 'UASA').eq('code', 'UASA').limit(1);
+      if (existing.error) throw existing.error;
+      if ((existing.data || []).length) throw new Error(`UASA ${year} sudah wujud. Import tidak diteruskan untuk mengelakkan data ditindih.`);
+    }
+
+    const className = parsed.class_name ? normalizeClassName(parsed.class_name) : '';
+    let matchedEnrolments: any[] = [];
+    let subjects: any[] = [];
     const missing: string[] = [];
-    const benchmarkPayload: any[] = [];
-    const markPayload: any[] = [];
-    rows.forEach((r) => {
-      const enrolmentId = enrolMap.get(`${normalizeClassName(r.className)}|${normalizeName(r.studentName)}`);
-      const subjectId = subjectMap.get(r.subjectCode);
-      if (!enrolmentId || !subjectId) { missing.push(`${r.className} / ${r.studentName} / ${r.subjectCode}`); return; }
-      benchmarkPayload.push({ enrolment_id: enrolmentId, subject_id: subjectId, tov: r.tov, etr: r.etr, updated_at: new Date().toISOString() });
-      if (r.ar1 !== null) markPayload.push({ assessment_id: assessment.id, enrolment_id: enrolmentId, subject_id: subjectId, score: r.ar1, grade: r.ar1Grade, source: 'xlsx', updated_at: new Date().toISOString() });
-    });
-    if (missing.length) console.warn('AR1 rows skipped because they are not in the current roster:', missing);
-    const b = await supabase.from('v2_academic_benchmarks').upsert(benchmarkPayload, { onConflict: 'enrolment_id,subject_id' }); if (b.error) throw b.error;
-    const m = await supabase.from('v2_academic_marks').upsert(markPayload, { onConflict: 'assessment_id,enrolment_id,subject_id' }); if (m.error) throw m.error;
-    return missing.length;
-  }
 
-  async function importPdf(parsed: ParsedPdfDocument, storagePath: string) {
-    if (!parsed.school_year) parsed.school_year = schoolYear;
+    if (parsed.doc_type !== 'PBD_SUMMARY') {
+      if (!className || !parsed.rows?.length) throw new Error('PDF individu tidak mempunyai kelas atau baris murid yang sah.');
+      const er = await supabase.from('v2_enrolments')
+        .select('id,students:v2_students!v2_enrolments_student_id_fkey(id,name,mykid,religion)')
+        .eq('school_year', year).eq('class_name', className);
+      if (er.error) throw er.error;
+      matchedEnrolments = er.data || [];
+      const sr = await supabase.from('v2_subjects').select('id,code');
+      if (sr.error) throw sr.error;
+      subjects = sr.data || [];
+
+      const byMykid = new Map<string, any>();
+      const byName = new Map<string, any>();
+      matchedEnrolments.forEach((e: any) => {
+        if (e.students?.mykid) byMykid.set(String(e.students.mykid).replace(/\D/g, ''), e);
+        byName.set(normalizeName(e.students?.name || ''), e);
+      });
+      parsed.rows.forEach((row) => {
+        const enrolment = (row.mykid ? byMykid.get(String(row.mykid).replace(/\D/g, '')) : null) || byName.get(normalizeName(row.student_name));
+        if (!enrolment) missing.push(row.student_name);
+      });
+      if (missing.length) throw new Error(`Murid tidak dapat dipadankan (${missing.length}): ${missing.slice(0, 5).join(', ')}`);
+    }
+
+    const storagePath = await uploadAssessmentPdf(file, year);
+    const metadata = isPbd(parsed) ? { ...parsed, pbd_round: pbdCode } : parsed;
     const { data: importRow, error: ie } = await supabase.from('v2_imports').insert({
-      school_year: parsed.school_year, import_type: parsed.doc_type, file_name: preview?.title || 'PDF', storage_path: storagePath,
-      status: 'confirmed', detected_metadata: parsed, validation_summary: { warnings: parsed.warnings || [] }
+      school_year: year, import_type: parsed.doc_type, file_name: file.name, storage_path: storagePath,
+      status: 'confirmed', detected_metadata: metadata, validation_summary: { warnings: parsed.warnings || [] }
     }).select('id').single();
     if (ie) throw ie;
 
     if (parsed.doc_type === 'PBD_SUMMARY') return;
-    if (!parsed.class_name || !parsed.rows?.length) throw new Error('PDF individu tidak mempunyai kelas atau baris murid yang sah.');
 
-    const year = Number(parsed.school_year || schoolYear);
-    const className = normalizeClassName(parsed.class_name);
-    const { data: enrolments, error: ee } = await supabase.from('v2_enrolments').select('id,students(id,name,mykid,religion)').eq('school_year', year).eq('class_name', className);
-    if (ee) throw ee;
-    const byMykid = new Map<string, any>(); const byName = new Map<string, any>();
-    (enrolments || []).forEach((e: any) => { if (e.students?.mykid) byMykid.set(String(e.students.mykid).replace(/\D/g, ''), e); byName.set(normalizeName(e.students?.name || ''), e); });
-    const { data: subjects, error: se } = await supabase.from('v2_subjects').select('id,code'); if (se) throw se;
-    const subjectMap = new Map((subjects || []).map((x: any) => [x.code, x.id]));
-
-    const isUasa = parsed.doc_type === 'UASA_INDIVIDUAL';
     const kind = isUasa ? 'UASA' : 'PBD';
-    const code = isUasa ? 'UASA' : derivePbdCode(parsed.activity || 'PBD');
+    const code = isUasa ? 'UASA' : pbdCode!;
+    const title = isUasa ? `UASA ${year}` : `${code} ${year}`;
     const { data: assessment, error: ae } = await supabase.from('v2_assessments').upsert({
-      school_year: year, kind, code, title: parsed.activity || code, source_kind: 'pdf', is_active: true
-    }, { onConflict: 'school_year,code' }).select('*').single(); if (ae) throw ae;
+      school_year: year, kind, code, title, source_kind: 'pdf', is_active: true,
+      sequence_no: isUasa ? null : code === 'PBD1' ? 1 : 2
+    }, { onConflict: 'school_year,code' }).select('*').single();
+    if (ae) throw ae;
 
-    const missing: string[] = []; const academic: any[] = []; const pbd: any[] = [];
-    parsed.rows.forEach((row) => {
+    const subjectMap = new Map(subjects.map((x: any) => [x.code, x.id]));
+    const byMykid = new Map<string, any>();
+    const byName = new Map<string, any>();
+    matchedEnrolments.forEach((e: any) => {
+      if (e.students?.mykid) byMykid.set(String(e.students.mykid).replace(/\D/g, ''), e);
+      byName.set(normalizeName(e.students?.name || ''), e);
+    });
+
+    const academic: any[] = [];
+    const pbd: any[] = [];
+    parsed.rows!.forEach((row) => {
       const enrolment = (row.mykid ? byMykid.get(String(row.mykid).replace(/\D/g, '')) : null) || byName.get(normalizeName(row.student_name));
-      if (!enrolment) { missing.push(row.student_name); return; }
+      if (!enrolment) return;
       Object.entries(row.values || {}).forEach(([label, raw]) => {
         let codeHint = subjectCodeFromLabel(label) || label.toUpperCase();
         if (codeHint === 'PAI_PM') codeHint = religiousSubjectForStudent(enrolment.students?.religion);
@@ -222,27 +250,31 @@ export function ImportCenterPage() {
         }
       });
     });
-    if (missing.length) throw new Error(`Murid tidak dapat dipadankan (${missing.length}): ${missing.slice(0, 5).join(', ')}`);
-    if (academic.length) { const r = await supabase.from('v2_academic_marks').upsert(academic, { onConflict: 'assessment_id,enrolment_id,subject_id' }); if (r.error) throw r.error; }
+
+    if (academic.length) {
+      const r = await supabase.from('v2_academic_marks').upsert(academic, { onConflict: 'assessment_id,enrolment_id,subject_id' });
+      if (r.error) throw r.error;
+    }
     if (pbd.length) {
       const r = await supabase.from('v2_pbd_records').upsert(pbd, { onConflict: 'assessment_id,enrolment_id,subject_id' });
       if (r.error) throw r.error;
-      await validatePbdSummary(importRow.id, year, className, pbd, subjects || []);
+      await validatePbdSummary(importRow.id, year, className, pbd, subjects, pbdCode!);
     }
   }
 
-  async function validatePbdSummary(importId: string, year: number, className: string, pbdRows: any[], subjectRows: any[]) {
+  async function validatePbdSummary(importId: string, year: number, className: string, pbdRows: any[], subjectRows: any[], pbdCode: string) {
     const { data: summaries } = await supabase.from('v2_imports')
       .select('id,detected_metadata,created_at')
       .eq('school_year', year)
       .eq('import_type', 'PBD_SUMMARY')
       .eq('status', 'confirmed')
       .order('created_at', { ascending: false })
-      .limit(20);
+      .limit(30);
 
-    const summaryImport = (summaries || []).find((row: any) => normalizeClassName(row.detected_metadata?.class_name || '') === className);
+    const sameClass = (summaries || []).filter((row: any) => normalizeClassName(row.detected_metadata?.class_name || '') === className);
+    const summaryImport = sameClass.find((row: any) => row.detected_metadata?.pbd_round === pbdCode) || sameClass.find((row: any) => !row.detected_metadata?.pbd_round);
     if (!summaryImport) {
-      await supabase.from('v2_imports').update({ validation_summary: { verified_against_summary: false, note: 'Tiada PDF ringkasan kelas dipadankan.' } }).eq('id', importId);
+      await supabase.from('v2_imports').update({ validation_summary: { verified_against_summary: false, note: 'Ringkasan PBD belum tersedia untuk kelas dan pusingan ini.' } }).eq('id', importId);
       return;
     }
 
@@ -259,17 +291,17 @@ export function ImportCenterPage() {
 
     const mismatches: string[] = [];
     for (const official of summaryImport.detected_metadata?.summary || []) {
-      const code = subjectCodeFromLabel(official.subject_label || '');
+      const subjectCode = subjectCodeFromLabel(official.subject_label || '');
       let actual;
-      if (code === 'PAI_PM') {
+      if (subjectCode === 'PAI_PM') {
         const pi = computed.get('PI'); const pm = computed.get('PM');
         actual = { TP1:0,TP2:0,TP3:0,TP4:0,TP5:0,TP6:0,total:0 };
         for (const src of [pi, pm]) if (src) for (const key of ['TP1','TP2','TP3','TP4','TP5','TP6','total'] as const) actual[key] += src[key];
-      } else actual = code ? computed.get(code) : undefined;
+      } else actual = subjectCode ? computed.get(subjectCode) : undefined;
       if (!actual) continue;
       for (const key of ['TP1','TP2','TP3','TP4','TP5','TP6','total'] as const) {
         const expected = Number(official[key] || 0);
-        if (actual[key] !== expected) mismatches.push(`${official.subject_label} ${key}: PDF ringkasan ${expected}, rekod murid ${actual[key]}`);
+        if (actual[key] !== expected) mismatches.push(`${official.subject_label} ${key}: ringkasan ${expected}, rekod murid ${actual[key]}`);
       }
     }
 
@@ -281,45 +313,65 @@ export function ImportCenterPage() {
   }
 
   return <>
-    <PageHeader eyebrow="AUTOMASI DATA" title="Import Center" description="Data diproses oleh portal. GitHub dan preprocessing tempatan tidak diperlukan untuk operasi biasa." />
-    <div className="import-grid">
-      <ImportBox icon={Users} title="Roster Murid" desc="Excel/CSV rasmi IDME. Menjadi sumber profil murid, kelas dan data pentadbiran." accept=".xlsx,.csv" onFiles={handleRoster}/>
-      <ImportBox icon={FileSpreadsheet} title="Migrasi AR1" desc="Pilih semua fail Excel Tahun 1–6 sekali gus." accept=".xlsx,.xls" multiple onFiles={handleAr}/>
-      <GlassCard className="import-box">
-        <div className="import-icon"><FileText/></div><h2>UASA / PBD PDF</h2><p>Portal mengenal pasti format PDF dan mengekstrak data.</p>
-        <select className="compact-select" value={pdfHint} onChange={(e) => setPdfHint(e.target.value as any)}><option value="AUTO">Auto Detect</option><option value="UASA">UASA</option><option value="PBD">PBD</option></select>
-        <label className="upload-button"><UploadCloud size={17}/> Pilih PDF<input type="file" accept="application/pdf" hidden onChange={(e) => handlePdf(e.target.files)}/></label>
-      </GlassCard>
-    </div>
+    <PageHeader title="Import Data" />
 
-    <GlassCard className="year-import-card"><label>Tahun data <input type="number" value={schoolYear} onChange={(e) => setSchoolYear(Number(e.target.value))}/></label><span>Digunakan apabila sumber tidak menyatakan tahun dengan jelas.</span></GlassCard>
+    <GlassCard className="assessment-import-panel">
+      <div className="assessment-import-heading"><FileText size={22}/><h2>Import Pentaksiran</h2></div>
+      <div className="assessment-import-controls">
+        <label>Jenis<select value={pdfHint} onChange={(e) => { setPdfHint(e.target.value as any); setPreview(null); }}><option value="AUTO">Auto Detect</option><option value="PBD">PBD</option><option value="UASA">UASA</option></select></label>
+        <label>Tahun<input type="number" value={schoolYear} onChange={(e) => setSchoolYear(Number(e.target.value))}/></label>
+        <label>Pusingan PBD<select value={pbdRound} onChange={(e) => setPbdRound(e.target.value as PbdRound)} disabled={pdfHint === 'UASA'}><option value="AUTO">Auto Detect</option><option value="PBD1">PBD 1</option><option value="PBD2">PBD 2</option></select></label>
+        <label className="primary-upload"><span>Fail PDF</span><span className="upload-button"><UploadCloud size={17}/> Pilih PDF<input type="file" accept="application/pdf" hidden onChange={(e) => handlePdf(e.target.files)}/></span></label>
+      </div>
+    </GlassCard>
 
     {status && <div className={`notice ${status.includes('berjaya') ? 'success' : ''}`}>{status}</div>}
-    {preview && <GlassCard className="preview-card"><div className="card-toolbar"><div><div className="eyebrow">PREVIEW IMPORT</div><h2>{preview.title}</h2></div><span className="status-chip"><CheckCircle2 size={15}/> Sedia disahkan</span></div>
+
+    {preview && <GlassCard className="preview-card">
+      <div className="card-toolbar"><div><h2>{preview.title}</h2></div><span className="status-chip"><CheckCircle2 size={15}/> Pratonton</span></div>
       <div className="preview-summary">{preview.summary.map((x) => <div key={x}>{x}</div>)}</div>
+      {preview.kind === 'PDF' && parsedPreview && isPbd(parsedPreview) && !roundForPreview && <div className="warning-row"><XCircle size={15}/> Pilih PBD 1 atau PBD 2.</div>}
       {preview.warnings.map((w) => <div className="warning-row" key={w}><XCircle size={15}/>{w}</div>)}
-      <div className="preview-actions"><button className="btn btn-ghost" onClick={() => setPreview(null)}>Batal</button><button className="btn btn-success" disabled={!canConfirm} onClick={confirm}>{busy ? 'Memproses...' : 'Sahkan Import'}</button></div>
+      {preview.blockers.map((w) => <div className="warning-row blocker" key={w}><XCircle size={15}/>{w}</div>)}
+      <div className="preview-actions"><button className="btn btn-ghost" onClick={() => setPreview(null)}>Batal</button><button className="btn btn-primary" disabled={!canConfirm} onClick={confirm}>{busy ? 'Memproses…' : 'Sahkan Import'}</button></div>
     </GlassCard>}
 
+    <section className="data-maintenance">
+      <div className="section-heading"><h2>Pengurusan Data</h2></div>
+      <GlassCard className="maintenance-row"><div className="maintenance-identity"><Users size={20}/><strong>Roster Murid</strong></div><label className="btn btn-ghost">Pilih Fail<input type="file" hidden accept=".xlsx,.csv" onChange={(e) => handleRoster(e.target.files)}/></label></GlassCard>
+    </section>
+
     <GlassCard className="history-card">
-      <div className="card-toolbar"><div><div className="eyebrow">REKOD SISTEM</div><h2>Sejarah Import</h2></div><button className="btn btn-ghost" onClick={() => void loadHistory()}>Segar Semula</button></div>
-      {!history.length ? <p className="muted">Belum ada import PDF yang direkodkan dalam Portal 2.0.</p> : <div className="table-scroll"><table className="data-table"><thead><tr><th>Tarikh</th><th>Jenis</th><th>Fail</th><th>Tahun</th><th>Status Validasi</th></tr></thead><tbody>{history.map((row) => {
+      <div className="card-toolbar"><div><h2>Sejarah Import</h2></div><button className="btn btn-ghost" onClick={() => void loadHistory()}>Segar Semula</button></div>
+      {!history.length ? <div className="empty-inline">Belum ada sejarah import.</div> : <div className="table-scroll"><table className="data-table"><thead><tr><th>Tarikh</th><th>Jenis</th><th>Fail</th><th>Tahun</th><th>Status</th></tr></thead><tbody>{history.map((row) => {
         const validation = row.validation_summary || {};
         const verified = validation.verified_against_summary;
-        const label = verified === true ? 'Disahkan' : verified === false ? 'Belum disahkan' : (validation.warnings?.length ? `${validation.warnings.length} amaran` : 'Import selesai');
-        return <tr key={row.id}><td>{new Date(row.created_at).toLocaleString('ms-MY')}</td><td>{row.import_type}</td><td>{row.file_name}</td><td>{row.school_year}</td><td><span className={`mini-status ${verified === true ? 'ok' : verified === false ? 'warn' : ''}`}>{label}</span></td></tr>;
+        const label = verified === true ? 'Disahkan' : verified === false ? 'Semakan diperlukan' : (validation.warnings?.length ? `${validation.warnings.length} amaran` : 'Selesai');
+        return <tr key={row.id}><td>{new Date(row.created_at).toLocaleString('ms-MY')}</td><td>{displayImportType(row.import_type)}</td><td>{row.file_name}</td><td>{row.school_year}</td><td><span className={`mini-status ${verified === true ? 'ok' : verified === false ? 'warn' : ''}`}>{label}</span></td></tr>;
       })}</tbody></table></div>}
     </GlassCard>
   </>;
 }
 
-function derivePbdCode(activity: string) {
-  const text = activity.toUpperCase();
-  if (text.includes('PERTENGAHAN')) return 'PBD-PERTENGAHAN';
-  if (text.includes('AKHIR')) return 'PBD-AKHIR';
-  return `PBD-${new Date().getMonth() + 1}`;
+function isPbd(parsed: ParsedPdfDocument) { return parsed.doc_type === 'PBD_INDIVIDUAL' || parsed.doc_type === 'PBD_SUMMARY'; }
+function resolvePbdRound(parsed: ParsedPdfDocument, choice: PbdRound): 'PBD1' | 'PBD2' | null {
+  if (choice === 'PBD1' || choice === 'PBD2') return choice;
+  const text = String(parsed.activity || '').toUpperCase();
+  if (text.includes('PERTENGAHAN') || text.includes('PBD 1') || text.includes('PBD1')) return 'PBD1';
+  if (text.includes('AKHIR') || text.includes('PBD 2') || text.includes('PBD2')) return 'PBD2';
+  return null;
 }
-
-function ImportBox({ icon: Icon, title, desc, accept, multiple, onFiles }: { icon: any; title: string; desc: string; accept: string; multiple?: boolean; onFiles: (files: FileList | null) => void }) {
-  return <GlassCard className="import-box"><div className="import-icon"><Icon/></div><h2>{title}</h2><p>{desc}</p><label className="upload-button"><UploadCloud size={17}/> Pilih Fail<input type="file" hidden accept={accept} multiple={multiple} onChange={(e) => onFiles(e.target.files)}/></label></GlassCard>;
+function displayDocType(value: ParsedPdfDocument['doc_type']) {
+  if (value === 'PBD_INDIVIDUAL') return 'PBD';
+  if (value === 'PBD_SUMMARY') return 'Ringkasan PBD';
+  if (value === 'UASA_INDIVIDUAL') return 'UASA';
+  return 'Tidak dikenal pasti';
+}
+function displayImportType(value: string) {
+  const labels: Record<string,string> = { PBD_INDIVIDUAL:'PBD', PBD_SUMMARY:'Ringkasan PBD', UASA_INDIVIDUAL:'UASA', ROSTER_XLSX:'Roster', ROSTER_CSV:'Roster', AR1_XLSX:'AR1', AR1_XLSX_RECONCILED:'AR1' };
+  return labels[value] || value.replaceAll('_',' ');
+}
+function displayClass(value: string, yearLevel?: number | null) {
+  const clean = normalizeClassName(value).toLowerCase().replace(/^./, (c) => c.toUpperCase());
+  return yearLevel ? `${yearLevel} ${clean}` : clean;
 }
