@@ -1,0 +1,113 @@
+/* Final route-wide semantic palette + contrast audit. Visual only. */
+:root{
+  --c-cyan:#42ddff;--c-blue:#5a8cff;--c-violet:#a47cff;--c-magenta:#ff75c8;
+  --c-emerald:#4ee2b1;--c-lime:#8ee06b;--c-gold:#ffd166;--c-orange:#ff9f43;
+  --c-rose:#ff6588;--c-red:#ff5d73;--c-slate:#a9b8cb;--c-text:#f7fbff;--c-muted:#b0c2d7;
+}
+
+/* Never allow legacy near-black text on dark premium surfaces */
+.teacher-main h1,.teacher-main h2,.teacher-main h3,.teacher-main h4,
+.public-main h1,.public-main h2,.public-main h3,.public-main h4,
+.pristine-analysis-title h2,.analysis-context h2,.analysis-context h2 span,
+.stat-value,.target-number,.target-number small,.metric-pair strong,
+.summary-row strong,.event-visibility-strip strong,.event-visibility-strip span,
+.distribution-label,.distribution-value,.distribution-value strong,
+.data-table td,.data-table td strong,.intervention-table td,.grade-modal-count,
+.pbd-membership-table td,.grade-membership-table td{
+  color:var(--c-text)!important;
+  opacity:1!important;
+  -webkit-text-fill-color:currentColor!important;
+}
+.pristine-analysis-title p,.analysis-context p,.stat-head,.stat-hint,.target-meta,
+.summary-row span,.metric-pair span,.card-toolbar p,.muted-cell,
+.data-table th,.intervention-table th,.pbd-membership-table th,.grade-membership-table th{
+  color:var(--c-muted)!important;
+  opacity:1!important;
+  -webkit-text-fill-color:currentColor!important;
+}
+
+/* Academic grade distribution: distinct premium palette, not one repeated gradient */
+.distribution-row:nth-child(1) .distribution-label,.distribution-row:nth-child(1) .distribution-value strong{color:var(--c-emerald)!important}
+.distribution-row:nth-child(1) .distribution-fill{background:linear-gradient(90deg,#28cfa0,#63efc2)!important}
+.distribution-row:nth-child(2) .distribution-label,.distribution-row:nth-child(2) .distribution-value strong{color:var(--c-cyan)!important}
+.distribution-row:nth-child(2) .distribution-fill{background:linear-gradient(90deg,#23bfe8,#53e1ff)!important}
+.distribution-row:nth-child(3) .distribution-label,.distribution-row:nth-child(3) .distribution-value strong{color:var(--c-blue)!important}
+.distribution-row:nth-child(3) .distribution-fill{background:linear-gradient(90deg,#4779ff,#6ca1ff)!important}
+.distribution-row:nth-child(4) .distribution-label,.distribution-row:nth-child(4) .distribution-value strong{color:var(--c-violet)!important}
+.distribution-row:nth-child(4) .distribution-fill{background:linear-gradient(90deg,#825dff,#b18cff)!important}
+.distribution-row:nth-child(5) .distribution-label,.distribution-row:nth-child(5) .distribution-value strong{color:var(--c-orange)!important}
+.distribution-row:nth-child(5) .distribution-fill{background:linear-gradient(90deg,#f28a32,#ffb45f)!important}
+.distribution-row:nth-child(6) .distribution-label,.distribution-row:nth-child(6) .distribution-value strong{color:var(--c-rose)!important}
+.distribution-row:nth-child(6) .distribution-fill{background:linear-gradient(90deg,#f65379,#ff809b)!important}
+.distribution-row:nth-child(7) .distribution-label,.distribution-row:nth-child(7) .distribution-value strong{color:var(--c-slate)!important}
+.distribution-row:nth-child(7) .distribution-fill{background:linear-gradient(90deg,#6f8196,#9aabc0)!important}
+.distribution-track{background:#101c31!important;border-color:rgba(154,190,225,.22)!important}
+.distribution-value{color:#d2deeb!important}
+
+/* Tone cards get their own jewel accent */
+.stat-card:nth-child(1){border-color:rgba(66,221,255,.38)!important}
+.stat-card:nth-child(2){border-color:rgba(164,124,255,.38)!important}
+.stat-card:nth-child(3){border-color:rgba(255,209,102,.38)!important}
+.stat-card:nth-child(4){border-color:rgba(255,101,136,.42)!important}
+.tone-green .stat-value,.tone-green svg{color:var(--c-emerald)!important}
+.tone-purple .stat-value,.tone-purple svg{color:var(--c-violet)!important}
+.tone-amber .stat-value,.tone-amber svg{color:var(--c-gold)!important}
+.tone-red .stat-value,.tone-red svg{color:var(--c-rose)!important}
+
+/* Grade badges */
+.grade-A{background:linear-gradient(135deg,#169d75,#37d9a8)!important;color:#effff9!important;border-color:rgba(89,245,190,.45)!important}
+.grade-B{background:linear-gradient(135deg,#168fb3,#31c9ea)!important;color:#f1fdff!important;border-color:rgba(91,226,255,.45)!important}
+.grade-C{background:linear-gradient(135deg,#346de0,#5b91ff)!important;color:#f4f8ff!important;border-color:rgba(118,166,255,.45)!important}
+.grade-D{background:linear-gradient(135deg,#7150d7,#9a70f5)!important;color:#fbf7ff!important;border-color:rgba(190,153,255,.42)!important}
+.grade-E{background:linear-gradient(135deg,#c16b25,#ed963e)!important;color:#fff9ef!important;border-color:rgba(255,185,99,.42)!important}
+.grade-F{background:linear-gradient(135deg,#c54161,#ef6281)!important;color:#fff5f7!important;border-color:rgba(255,126,153,.45)!important}
+.grade-TH{background:linear-gradient(135deg,#516276,#78899c)!important;color:#f3f6fa!important;border-color:rgba(183,199,216,.32)!important}
+
+/* PBD semantic colors are reinforced in labels/tables too */
+.pbd-membership-table tbody tr:nth-child(1) td:first-child strong{color:#ff6588!important}
+.pbd-membership-table tbody tr:nth-child(2) td:first-child strong{color:#ff9f43!important}
+.pbd-membership-table tbody tr:nth-child(3) td:first-child strong{color:#ffd166!important}
+.pbd-membership-table tbody tr:nth-child(4) td:first-child strong{color:#4ee2b1!important}
+.pbd-membership-table tbody tr:nth-child(5) td:first-child strong{color:#42ddff!important}
+.pbd-membership-table tbody tr:nth-child(6) td:first-child strong{color:#a47cff!important}
+
+/* Cards use different accent rims so the portal does not read as one blue block */
+.portal-card:nth-child(4n+1),.module-card:nth-child(4n+1){border-color:rgba(66,221,255,.34)!important}
+.portal-card:nth-child(4n+2),.module-card:nth-child(4n+2){border-color:rgba(164,124,255,.34)!important}
+.portal-card:nth-child(4n+3),.module-card:nth-child(4n+3){border-color:rgba(78,226,177,.34)!important}
+.portal-card:nth-child(4n+4),.module-card:nth-child(4n+4){border-color:rgba(255,117,200,.32)!important}
+.portal-card:nth-child(4n+1) .portal-arrow{color:var(--c-cyan)!important}
+.portal-card:nth-child(4n+2) .portal-arrow{color:var(--c-violet)!important}
+.portal-card:nth-child(4n+3) .portal-arrow{color:var(--c-emerald)!important}
+.portal-card:nth-child(4n+4) .portal-arrow{color:var(--c-magenta)!important}
+
+/* Parent lookup: high-contrast hero, no faded copy */
+.lookup-copy h1,.lookup-copy h2,.lookup-copy strong{color:#fff!important;opacity:1!important;-webkit-text-fill-color:#fff!important}
+.lookup-copy p,.lookup-copy .supporting-copy{color:#c7d8ea!important;opacity:1!important;-webkit-text-fill-color:#c7d8ea!important}
+.parent-search-card label,.parent-search-card .field-label{color:#d7e6f5!important;background:transparent!important}
+.parent-search-card input{color:#fff!important;-webkit-text-fill-color:#fff!important}
+.parent-search-card input::placeholder{color:#91a7bf!important;opacity:1!important}
+
+/* Headers / logos: preserve source crest colors instead of dark compositing */
+.school-crest,.topbar .school-crest,.sidebar .school-crest,.mobile-brand img{
+  mix-blend-mode:normal!important;opacity:1!important;filter:saturate(1.08) brightness(1.12) contrast(1.04)!important;
+  background:linear-gradient(145deg,rgba(190,231,255,.18),rgba(93,146,217,.10),rgba(142,95,237,.10))!important;
+}
+
+/* Tooltip readability and remove white hover/active artifacts */
+.recharts-tooltip-wrapper,.recharts-default-tooltip{color:#f7fbff!important}
+.recharts-default-tooltip{background:#07152b!important;border:1px solid rgba(93,188,255,.34)!important}
+.recharts-tooltip-item,.recharts-tooltip-label{color:#f7fbff!important}
+.recharts-rectangle.recharts-tooltip-cursor{fill:rgba(75,141,255,.08)!important;stroke:none!important}
+.recharts-active-bar,.recharts-bar-rectangle:hover{filter:brightness(1.06)!important}
+
+/* Mobile final pass: preserve color/contrast without increasing GPU cost */
+@media(max-width:780px){
+  .pristine-analysis-title h2,.analysis-context h2{font-size:34px!important;line-height:1.02!important;color:#fff!important}
+  .analysis-context h2 span{font-size:12px!important;line-height:1.35!important;margin-top:8px!important;color:#b7c9dc!important}
+  .stat-value{color:#fff!important;text-shadow:none!important}
+  .distribution-list{gap:10px!important}
+  .distribution-label{font-weight:800!important}
+  .distribution-value{font-size:12px!important}
+  .topbar .school-crest,.mobile-brand img{filter:saturate(1.08) brightness(1.18) contrast(1.04)!important}
+}
