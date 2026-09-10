@@ -12,6 +12,7 @@ import './pbd-analysis-fix.css';
 import './parent-report.css';
 import './liquid-glass.css';
 import './liquid-metal.css';
+import './mockup-fidelity.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
