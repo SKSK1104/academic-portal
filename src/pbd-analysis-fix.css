@@ -14,4 +14,24 @@
 .grade-event-strip>div strong{color:#fff!important}
 .grade-event-strip>div span{color:#b8cce0!important}
 
+/* Mobile public header: compact, balanced, and keeps the real crest clear. */
+@media(max-width:780px){
+  .topbar.pristine-topbar{min-height:86px!important;height:auto!important;padding:10px 14px!important;gap:10px!important;display:flex!important;align-items:center!important;justify-content:space-between!important}
+  .topbar.pristine-topbar>a:first-child{display:block!important;min-width:0!important;flex:1 1 auto!important;overflow:hidden!important}
+  .topbar .pristine-brand{display:grid!important;grid-template-columns:60px minmax(0,1fr)!important;gap:10px!important;align-items:center!important;min-width:0!important}
+  .topbar .pristine-brand>span{width:60px!important;height:60px!important}
+  .topbar .brand-copy{min-width:0!important}
+  .topbar .brand-copy strong{display:block!important;font-size:20px!important;line-height:1.05!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+  .topbar .brand-copy small{display:none!important}
+  .topbar>a.btn{flex:0 0 auto!important;min-height:48px!important;padding:10px 13px!important;border-radius:16px!important;font-size:14px!important;font-weight:800!important;line-height:1.05!important;gap:7px!important;white-space:normal!important;max-width:118px!important;text-align:left!important}
+  .topbar>a.btn svg{width:18px!important;height:18px!important;flex:0 0 auto!important}
+}
+@media(max-width:430px){
+  .topbar.pristine-topbar{padding:9px 10px!important}
+  .topbar .pristine-brand{grid-template-columns:54px minmax(0,1fr)!important;gap:8px!important}
+  .topbar .pristine-brand>span{width:54px!important;height:54px!important}
+  .topbar .brand-copy strong{font-size:18px!important}
+  .topbar>a.btn{max-width:102px!important;padding:9px 10px!important;font-size:13px!important}
+}
+
 @media(max-width:1100px){.pbd-primary-grid{grid-template-columns:1fr}.pbd-rumusan-card{min-height:auto}.pbd-chart-height{height:430px}}@media(max-width:780px){.pbd-chart-height{height:390px}.pbd-distribution-card .card-toolbar h2,.pbd-round-card .card-toolbar h2,.pbd-membership-card .card-toolbar h2{font-size:24px}.pbd-membership-table{min-width:620px}.grade-event-strip{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important}}@media print{@page{size:landscape;margin:10mm}.pbd-primary-grid{display:block}.pbd-rumusan-card{margin-top:10px}.pbd-chart-height{height:340px!important}.pbd-round-chart{height:300px!important}.pbd-membership-scroll{overflow:visible!important}.pbd-membership-table{min-width:0!important}.pbd-membership-table td,.pbd-membership-table th{font-size:9px;padding:7px}.pbd-membership-table td:first-child,.pbd-membership-table td:nth-child(2){font-size:11px;width:auto}.pbd-empty-state{display:none!important}}
