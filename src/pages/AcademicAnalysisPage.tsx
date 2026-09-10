@@ -174,12 +174,8 @@ export function AcademicAnalysisPage() {
       const row: Record<string, string | number> = { grade };
       progressEvents.forEach((event) => {
         const people = gradeMembers(event, grade, selectedSubject.id, selectedBenchmarks, trendMarks, enrolmentById, studentById);
-        const total = event.kind === 'AR'
-          ? trendMarks.filter((m) => m.subject_id === selectedSubject.id && m.assessment_id === event.assessmentId).length
-          : selectedBenchmarks.filter((b) => event.kind === 'TOV' ? b.tov !== null : b.etr !== null).length;
-        const pct = total ? people.length / total * 100 : 0;
         row[event.code] = people.length;
-        row[event.labelKey] = total ? `${people.length} (${pct.toFixed(1)}%)` : '—';
+        row[event.labelKey] = people.length ? String(people.length) : '';
       });
       return row;
     });
@@ -187,14 +183,15 @@ export function AcademicAnalysisPage() {
 
   const gradeMembership = useMemo(() => {
     if (!selectedSubject) return [];
-    return GRADE_ORDER.map((grade) => ({
-      grade,
-      events: progressEvents.map((event) => ({
-        code: event.code,
-        names: gradeMembers(event, grade, selectedSubject.id, selectedBenchmarks, trendMarks, enrolmentById, studentById).map((x) => x.name)
-      }))
-    }));
-  }, [selectedSubject, progressEvents, selectedBenchmarks, trendMarks, enrolmentById, studentById]);
+    return GRADE_ORDER.map((grade) => {
+      const rowsForGrade = currentRows.filter((r) => String(r.grade || '').toUpperCase() === grade);
+      const names = rowsForGrade.map((r) => {
+        const enrolment = enrolmentById.get(r.enrolment_id);
+        return enrolment ? studentById.get(enrolment.student_id)?.name || '—' : '—';
+      }).sort((a, b) => a.localeCompare(b));
+      return { grade, names };
+    });
+  }, [selectedSubject, currentRows, enrolmentById, studentById]);
 
   const eventCoverage = useMemo(() => progressEvents.map((event) => {
     if (!selectedSubject) return { code: event.code, total: 0 };
@@ -212,7 +209,6 @@ export function AcademicAnalysisPage() {
   const deltaTov = currentAverage !== null && tovAverage !== null ? currentAverage - tovAverage : null;
   const gapEtr = currentAverage !== null && etrAverage !== null ? etrAverage - currentAverage : null;
   const classDisplay = className === 'ALL' ? 'Seluruh Sekolah' : `${classes.find((c) => c.className === className)?.yearLevel || ''} ${formatClass(className)}`.trim();
-  const gradeChartWidth = Math.max(1180, progressEvents.length * GRADE_ORDER.length * 62);
 
   return <>
     <PageHeader title="Analisis Akademik" actions={<button className="btn btn-ghost" onClick={() => window.print()}><Printer size={16}/> Cetak</button>} />
@@ -260,12 +256,12 @@ export function AcademicAnalysisPage() {
     <GlassCard className="summary-panel grade-progression-card premium-card">
       <div className="card-toolbar grade-chart-toolbar"><div><h2>Taburan Gred</h2></div><span className="status-chip">Klik bar untuk senarai murid</span></div>
       <div className="event-visibility-strip grade-event-strip">{eventCoverage.map((e) => <div key={e.code}><strong>{e.code}</strong><span>{e.total ? `${e.total} rekod` : 'Tiada data'}</span></div>)}</div>
-      <div className="grade-chart-scroll"><div className="grade-progression-chart" style={{width: gradeChartWidth}}>{selectedSubject && gradeProgression.length ? <ResponsiveContainer width="100%" height="100%"><BarChart data={gradeProgression} margin={{top:72,right:34,bottom:22,left:12}} barCategoryGap="20%" barGap={8}><CartesianGrid vertical={false}/><XAxis dataKey="grade" tickLine={false} axisLine={{stroke:'#aaa89d'}} tick={{fontSize:17,fontWeight:900}}/><YAxis allowDecimals={false} tickLine={false} axisLine={false} tick={{fontSize:14}}/><Tooltip formatter={(value, name) => [`${value} murid`, String(name)]} contentStyle={{background:'#fffefa',border:'1px solid #c9c7bd',borderRadius:2,color:'#17191d',fontSize:14}}/><Legend verticalAlign="bottom" height={42} wrapperStyle={{fontSize:14,fontWeight:800}}/>{progressEvents.map((event, index) => <Bar key={event.code} dataKey={event.code} name={event.label} fill={eventColor(index, progressEvents.length)} radius={[3,3,0,0]} cursor="pointer" minPointSize={eventCoverage.find((e) => e.code === event.code)?.total ? 0 : 0} onClick={(data: any) => openGradeDrilldown(event, String(data?.payload?.grade || data?.grade || ''))}><LabelList dataKey={event.labelKey} position="top" className="grade-bar-label"/></Bar>)}</BarChart></ResponsiveContainer> : <div className="empty-inline">Tiada data taburan gred.</div>}</div></div>
+      <div className="grade-progression-chart">{selectedSubject && gradeProgression.length ? <ResponsiveContainer width="100%" height="100%"><BarChart data={gradeProgression} margin={{top:50,right:28,bottom:22,left:10}} barCategoryGap="22%" barGap={5}><CartesianGrid vertical={false}/><XAxis dataKey="grade" tickLine={false} axisLine={{stroke:'#aaa89d'}} tick={{fontSize:17,fontWeight:900}}/><YAxis allowDecimals={false} tickLine={false} axisLine={false} tick={{fontSize:14}}/><Tooltip formatter={(value, name) => [`${value} murid`, String(name)]} contentStyle={{background:'#fffefa',border:'1px solid #c9c7bd',borderRadius:2,color:'#17191d',fontSize:14}}/><Legend verticalAlign="bottom" height={42} wrapperStyle={{fontSize:14,fontWeight:800}}/>{progressEvents.map((event, index) => <Bar key={event.code} dataKey={event.code} name={event.label} fill={eventColor(index, progressEvents.length)} radius={[3,3,0,0]} cursor="pointer" onClick={(data: any) => openGradeDrilldown(event, String(data?.payload?.grade || data?.grade || ''))}><LabelList dataKey={event.labelKey} position="top" className="grade-bar-label"/></Bar>)}</BarChart></ResponsiveContainer> : <div className="empty-inline">Tiada data taburan gred.</div>}</div>
     </GlassCard>
 
     <GlassCard className="summary-panel performance-summary-wide premium-card"><h3>Rumusan Prestasi</h3><div className="performance-summary-grid"><div className="summary-row"><span>Purata TOV</span><strong>{tovAverage === null ? '—' : tovAverage.toFixed(1)}</strong></div><div className="summary-row"><span>Purata {assessment?.code || 'AR'}</span><strong>{currentAverage === null ? '—' : currentAverage.toFixed(1)}</strong></div><div className="summary-row"><span>ETR</span><strong>{etrAverage === null ? '—' : etrAverage.toFixed(1)}</strong></div><div className="summary-row"><span>MTM</span><strong>{summary.mtm} ({summary.mtmPct.toFixed(1)}%)</strong></div><div className="summary-row"><span>Intervensi</span><strong>{summary.intervention} ({summary.interventionPct.toFixed(1)}%)</strong></div></div></GlassCard>
 
-    <GlassCard className="summary-panel grade-membership-card premium-card"><div className="card-toolbar"><div><h2>Senarai Murid Mengikut Gred</h2></div><span className="status-chip">Cetakan lengkap</span></div><div className="grade-membership-scroll"><table className="data-table grade-membership-table"><thead><tr><th>Gred</th>{progressEvents.map((event) => <th key={event.code}>{event.code}</th>)}</tr></thead><tbody>{gradeMembership.map((row) => <tr key={row.grade}><td className="grade-membership-grade"><strong>{row.grade}</strong></td>{row.events.map((event) => <td key={`${row.grade}-${event.code}`}><strong className="grade-membership-count">{event.names.length || '—'}</strong>{event.names.length ? <div className="grade-membership-names">{event.names.map((name) => <span key={name}>{name}</span>)}</div> : <span className="muted-cell">Tiada murid</span>}</td>)}</tr>)}</tbody></table></div></GlassCard>
+    <GlassCard className="summary-panel grade-membership-card premium-card"><div className="card-toolbar"><div><h2>Senarai Murid Mengikut Gred</h2></div><span className="status-chip">{assessment?.code || 'Pentaksiran semasa'} · Cetakan lengkap</span></div><div className="grade-membership-scroll"><table className="data-table grade-membership-table compact-grade-table"><thead><tr><th>Gred</th><th>Bilangan</th><th>Nama Murid</th></tr></thead><tbody>{gradeMembership.map((row) => <tr key={row.grade}><td className="grade-membership-grade"><strong>{row.grade}</strong></td><td className="grade-membership-total"><strong>{row.names.length}</strong></td><td>{row.names.length ? <div className="grade-membership-names inline-names">{row.names.map((name) => <span key={name}>{name}</span>)}</div> : <span className="muted-cell">Tiada murid</span>}</td></tr>)}</tbody></table></div></GlassCard>
 
     {drilldown && <div className="grade-modal-backdrop no-print" role="dialog" aria-modal="true" aria-label={`Murid gred ${drilldown.grade} ${drilldown.eventCode}`} onMouseDown={(e) => { if (e.currentTarget === e.target) setDrilldown(null); }}>
       <div className="grade-modal"><div className="grade-modal-head"><div><span>{drilldown.eventCode}</span><h2>Gred {drilldown.grade}</h2></div><button className="icon-button" onClick={() => setDrilldown(null)} aria-label="Tutup"><X size={18}/></button></div><div className="grade-modal-count">{drilldown.names.length} murid</div>{drilldown.names.length ? <ol className="grade-modal-list">{drilldown.names.map((name) => <li key={name}>{name}</li>)}</ol> : <div className="empty-inline">Tiada murid dalam kategori ini.</div>}</div>
