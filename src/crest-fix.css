@@ -1,0 +1,9 @@
+/* Premium Liquid Glass school crest treatment */
+.sidebar .pristine-brand{display:flex!important;flex-direction:column!important;align-items:flex-start!important;gap:12px!important}
+.sidebar .school-crest{width:78px!important;height:78px!important;object-fit:cover!important;object-position:center!important;border-radius:22px!important;padding:6px!important;background:linear-gradient(145deg,rgba(220,245,255,.32),rgba(98,163,224,.16) 48%,rgba(126,92,214,.12))!important;border:1px solid rgba(188,230,255,.42)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.42),inset 0 -1px 0 rgba(255,255,255,.08),0 10px 28px rgba(0,0,0,.28),0 0 24px rgba(63,185,255,.14)!important;backdrop-filter:blur(18px) saturate(145%)!important;-webkit-backdrop-filter:blur(18px) saturate(145%)!important;mix-blend-mode:multiply!important;display:block!important}
+.sidebar .brand-copy{padding-left:1px}
+.sidebar .brand-copy strong{font-size:20px!important;line-height:1.05!important;letter-spacing:.01em!important;color:#f7fbff!important;text-shadow:0 1px 12px rgba(135,211,255,.12)}
+.sidebar .brand-copy small{margin-top:7px!important;font-size:9px!important;line-height:1.55!important;letter-spacing:.17em!important;color:#8faac4!important;max-width:188px!important}
+.sidebar-brand-link{padding:0 7px 20px!important;margin-bottom:14px!important;border-bottom:1px solid rgba(89,185,240,.18)!important}
+.topbar .school-crest{border-radius:16px!important;padding:4px!important;background:linear-gradient(145deg,rgba(220,245,255,.25),rgba(110,171,225,.12))!important;border:1px solid rgba(187,228,255,.35)!important;box-shadow:inset 0 1px rgba(255,255,255,.35),0 8px 22px rgba(0,0,0,.18)!important;mix-blend-mode:multiply!important}
+@media(max-width:780px){.mobile-brand img{border-radius:10px!important;padding:2px!important;background:rgba(166,216,255,.16)!important;mix-blend-mode:multiply!important}}
