@@ -24,8 +24,7 @@ export function TeacherLoginPage() {
     <form className="glass-card login-card" onSubmit={submit}>
       <div className="login-icon"><LockKeyhole/></div>
       <div className="eyebrow">AKSES GURU</div>
-      <h1>Portal Guru</h1>
-      <p>Satu akaun bersama untuk guru dan pentadbir. Kata laluan disahkan oleh Supabase dan tidak disimpan dalam halaman.</p>
+      <h1>Sistem Pengurusan Akademik dan Pentaksiran</h1>
       <label>Kata Laluan</label>
       <input type="password" autoFocus autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Masukkan kata laluan" />
       {error && <div className="form-error">{error}</div>}
