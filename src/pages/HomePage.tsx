@@ -7,13 +7,13 @@ const cards = [
   { to: '/semakan', icon: Search, title: 'Semakan Ibu Bapa', accent: 'purple' },
   { to: '/prestasi', icon: BarChart3, title: 'Prestasi Akademik', accent: 'blue' },
   { to: '/pbd', icon: BookOpenCheck, title: 'Pelaporan PBD', accent: 'green' },
-  { to: '/guru', icon: ShieldCheck, title: 'Portal Guru', accent: 'amber' }
+  { to: '/guru', icon: ShieldCheck, title: 'Akses Guru', accent: 'amber' }
 ];
 
 export function HomePage() {
   return <div className="landing">
     <section className="hero glass-hero">
-      <div className="hero-badge">PORTAL AKADEMIK 2.0</div>
+      <div className="hero-badge">SISTEM PENGURUSAN AKADEMIK DAN PENTAKSIRAN</div>
       <h1>{SCHOOL_NAME}</h1>
     </section>
     <section className="portal-grid">
