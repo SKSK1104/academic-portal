@@ -1,6 +1,6 @@
-import { ArrowUpRight, BookOpenCheck, Search, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowUpRight, Award, BarChart3, BookOpenCheck, Search, ShieldCheck, Sparkles, TrendingUp, UserRound } from 'lucide-react';
 import { FormEvent, useMemo, useState } from 'react';
-import { Bar, BarChart, CartesianGrid, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { GlassCard } from '../components/GlassCard';
 import { PageHeader } from '../components/PageHeader';
 import { supabase } from '../lib/supabase';
@@ -77,8 +77,12 @@ export function ParentSearchPage(){
   const scoredLatest=latestRows.filter(r=>r.score!==null);
   const averageLatest=scoredLatest.length?scoredLatest.reduce((s,r)=>s+Number(r.score||0),0)/scoredLatest.length:null;
   const mtmSubjects=latestRows.filter(r=>r.grade&&['A','B','C','D','E'].includes(r.grade)).length;
+  const interventionSubjects=latestRows.filter(r=>r.grade==='F').length;
   const latestPbdRows=report?.pbd.filter(r=>r.assessment===latestPbd)||[];
   const pbdMtm=latestPbdRows.filter(r=>r.tp>=3).length;
+  const averageTp=latestPbdRows.length?latestPbdRows.reduce((s,r)=>s+Number(r.tp),0)/latestPbdRows.length:null;
+  const trendDelta=academicTrend.length>1?academicTrend[academicTrend.length-1].average-academicTrend[0].average:null;
+  const initials=report?.student.name.split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('')||'';
 
   return <div className={`parent-page ${report?'has-report':''}`}>
     {!report&&<>
@@ -100,44 +104,55 @@ export function ParentSearchPage(){
     </>}
 
     {report&&<div className="parent-report premium-parent-report">
-      <section className="parent-report-hero">
+      <section className="parent-report-hero premium-parent-card">
         <button className="parent-new-search" onClick={()=>{setReport(null);setMykid('');setMessage('')}}><Search size={15}/> Semakan baharu</button>
-        <div className="parent-student-overline">LAPORAN PRESTASI {report.student.school_year}</div>
-        <h1>{report.student.name}</h1>
-        <div className="parent-identity-line"><span>ID Murid <strong>{report.student.student_id}</strong></span><span>Kelas <strong>{report.student.year_level} {formatClass(report.student.class_name)}</strong></span></div>
+        <div className="parent-profile-medallion" aria-hidden="true"><span>{initials}</span></div>
+        <div className="parent-hero-copy">
+          <div className="parent-student-overline">LAPORAN PRESTASI · {report.student.school_year}</div>
+          <h1>{report.student.name}</h1>
+          <div className="parent-identity-line">
+            <span><small>ID Murid</small><strong>{report.student.student_id}</strong></span>
+            <span><small>Kelas</small><strong>{report.student.year_level} {formatClass(report.student.class_name)}</strong></span>
+            <span><small>Status</small><strong>Rekod Aktif</strong></span>
+          </div>
+        </div>
+        <div className="parent-hero-seal"><ShieldCheck size={18}/><span>Data rasmi<br/><strong>sekolah</strong></span></div>
       </section>
 
       <section className="parent-kpi-rail">
-        <div><span>Purata {latestAcademic||'Akademik'}</span><strong>{averageLatest===null?'—':averageLatest.toFixed(1)}</strong><small>/ 100</small></div>
-        <div><span>Subjek MTM</span><strong>{mtmSubjects}</strong><small>{latestAcademic||'—'}</small></div>
-        <div><span>Penguasaan PBD</span><strong>{latestPbdRows.length?Math.round((pbdMtm/latestPbdRows.length)*100):0}%</strong><small>TP3–TP6 · {latestPbd||'—'}</small></div>
-        <div className="parent-kpi-signature"><Sparkles size={18}/><span>Rekod sekolah<br/><strong>dikemas kini</strong></span></div>
+        <div className="parent-kpi-card"><span className="parent-kpi-icon"><BarChart3 size={18}/></span><div><span>Purata {latestAcademic||'Akademik'}</span><strong>{averageLatest===null?'—':averageLatest.toFixed(1)}</strong><small>/ 100</small></div></div>
+        <div className="parent-kpi-card"><span className="parent-kpi-icon"><TrendingUp size={18}/></span><div><span>Perubahan</span><strong>{trendDelta===null?'—':`${trendDelta>=0?'+':''}${trendDelta.toFixed(1)}`}</strong><small>{academicTrend.length>1?'sejak rekod awal':'belum ada perbandingan'}</small></div></div>
+        <div className="parent-kpi-card"><span className="parent-kpi-icon"><Award size={18}/></span><div><span>Subjek MTM</span><strong>{mtmSubjects}</strong><small>{latestAcademic||'—'}</small></div></div>
+        <div className="parent-kpi-card parent-kpi-attention"><span className="parent-kpi-icon"><Sparkles size={18}/></span><div><span>Perlu perhatian</span><strong>{interventionSubjects}</strong><small>Gred F</small></div></div>
       </section>
 
       <section className="parent-dashboard-grid">
         <GlassCard className="parent-chart-card parent-chart-wide premium-parent-card">
-          <div className="parent-section-head"><div><span>AKADEMIK</span><h2>Perkembangan Prestasi</h2></div><ArrowUpRight size={22}/></div>
+          <div className="parent-section-head"><div><span>AKADEMIK</span><h2>Perkembangan Prestasi</h2><p>Purata markah mengikut pusingan pentaksiran</p></div><ArrowUpRight size={22}/></div>
           <div className="parent-chart-frame parent-academic-chart">
-            <ResponsiveContainer width="100%" height="100%"><BarChart data={academicTrend} margin={{top:34,right:18,left:-4,bottom:0}} barCategoryGap="36%">
-              <CartesianGrid vertical={false} strokeDasharray="3 7"/><XAxis dataKey="assessment" tickLine={false} axisLine={false}/><YAxis domain={[0,100]} tickLine={false} axisLine={false}/><Tooltip formatter={(v:any)=>[`${v} / 100`,'Purata markah']}/><Bar dataKey="average" fill="currentColor" radius={[9,9,2,2]} maxBarSize={88}><LabelList dataKey="average" position="top" formatter={(v:any)=>Number(v)>0?Number(v).toFixed(1):''} /></Bar></BarChart></ResponsiveContainer>
+            <ResponsiveContainer width="100%" height="100%"><BarChart data={academicTrend} margin={{top:38,right:18,left:0,bottom:0}} barCategoryGap="34%">
+              <CartesianGrid vertical={false} strokeDasharray="3 7"/><XAxis dataKey="assessment" tickLine={false} axisLine={false}/><YAxis domain={[0,100]} tickLine={false} axisLine={false}/><Tooltip cursor={{fill:'rgba(154,119,32,.05)'}} formatter={(v:any)=>[`${v} / 100`,'Purata markah']}/><Bar dataKey="average" radius={[10,10,3,3]} maxBarSize={92}>{academicTrend.map((d,i)=><Cell key={d.assessment} className={i===academicTrend.length-1?'parent-bar-current':'parent-bar-past'}/>) }<LabelList dataKey="average" position="top" formatter={(v:any)=>Number(v)>0?Number(v).toFixed(1):''} /></Bar></BarChart></ResponsiveContainer>
           </div>
+          {trendDelta!==null&&<div className={`parent-trend-note ${trendDelta<0?'down':''}`}><TrendingUp size={18}/><strong>{trendDelta>=0?'+':''}{trendDelta.toFixed(1)}</strong><span>perubahan purata daripada rekod awal</span></div>}
         </GlassCard>
 
-        <GlassCard className="parent-chart-card premium-parent-card">
-          <div className="parent-section-head"><div><span>PBD · {latestPbd||'—'}</span><h2>Taburan Tahap Penguasaan</h2></div><BookOpenCheck size={21}/></div>
+        <GlassCard className="parent-chart-card parent-pbd-feature premium-parent-card">
+          <div className="parent-section-head"><div><span>PBD · {latestPbd||'—'}</span><h2>Taburan Tahap Penguasaan</h2><p>Bilangan mata pelajaran mengikut TP terkini</p></div><BookOpenCheck size={21}/></div>
+          <div className="parent-pbd-summary"><strong>{averageTp===null?'—':`TP${averageTp.toFixed(1)}`}</strong><span>Purata tahap<br/>penguasaan</span></div>
           <div className="parent-chart-frame compact">
-            <ResponsiveContainer width="100%" height="100%"><BarChart data={tpDistribution} margin={{top:32,right:8,left:-14,bottom:0}} barCategoryGap="24%"><CartesianGrid vertical={false} strokeDasharray="3 7"/><XAxis dataKey="tp" tickLine={false} axisLine={false}/><YAxis allowDecimals={false} tickLine={false} axisLine={false}/><Tooltip formatter={(v:any)=>[v,'Mata pelajaran']}/><Bar dataKey="count" fill="currentColor" radius={[8,8,2,2]} maxBarSize={54}><LabelList dataKey="count" position="top" formatter={(v:any)=>Number(v)>0?String(v):''}/></Bar></BarChart></ResponsiveContainer>
+            <ResponsiveContainer width="100%" height="100%"><BarChart data={tpDistribution} margin={{top:32,right:8,left:-8,bottom:0}} barCategoryGap="24%"><CartesianGrid vertical={false} strokeDasharray="3 7"/><XAxis dataKey="tp" tickLine={false} axisLine={false}/><YAxis allowDecimals={false} tickLine={false} axisLine={false}/><Tooltip cursor={{fill:'rgba(154,119,32,.05)'}} formatter={(v:any)=>[v,'Mata pelajaran']}/><Bar dataKey="count" radius={[8,8,2,2]} maxBarSize={58}>{tpDistribution.map((d,i)=><Cell key={d.tp} className={`parent-tp-bar parent-tp-bar-${i+1}`}/>) }<LabelList dataKey="count" position="top" formatter={(v:any)=>String(v)}/></Bar></BarChart></ResponsiveContainer>
           </div>
+          <div className="parent-pbd-foot"><span><strong>{pbdMtm}</strong> subjek TP3–TP6</span><span><strong>{latestPbdRows.length-pbdMtm}</strong> subjek TP1–TP2</span></div>
         </GlassCard>
       </section>
 
       <GlassCard className="parent-detail-card premium-parent-card">
-        <div className="parent-section-head"><div><span>REKOD TERPERINCI</span><h2>Prestasi Akademik Mengikut Mata Pelajaran</h2></div></div>
+        <div className="parent-section-head"><div><span>REKOD TERPERINCI</span><h2>Prestasi Akademik Mengikut Mata Pelajaran</h2><p>Perbandingan markah dan gred bagi setiap pusingan</p></div><UserRound size={20}/></div>
         <div className="table-scroll parent-table-scroll"><table className="data-table parent-premium-table"><thead><tr><th>Mata Pelajaran</th>{academicAssessments.map(a=><th key={a.code}>{a.code}</th>)}</tr></thead><tbody>{academicSubjects.map(s=><tr key={s.code}><td><strong>{s.name}</strong></td>{academicAssessments.map(a=>{const r=report.academic.find(x=>(x.subject_code||x.subject)===s.code&&x.assessment===a.code);return <td key={a.code}>{r?<div className="parent-result-cell"><strong>{r.score??'—'}</strong><span className={`grade grade-${String(r.grade||'').toLowerCase()}`}>{r.grade||'—'}</span></div>:'—'}</td>})}</tr>)}</tbody></table></div>
       </GlassCard>
 
       <GlassCard className="parent-detail-card premium-parent-card">
-        <div className="parent-section-head"><div><span>PBD</span><h2>Tahap Penguasaan Mengikut Mata Pelajaran</h2></div></div>
+        <div className="parent-section-head"><div><span>PBD</span><h2>Tahap Penguasaan Mengikut Mata Pelajaran</h2><p>Perbandingan tahap penguasaan bagi setiap pusingan</p></div></div>
         <div className="table-scroll parent-table-scroll"><table className="data-table parent-premium-table"><thead><tr><th>Mata Pelajaran</th>{pbdAssessments.map(a=><th key={a.code}>{a.code}</th>)}</tr></thead><tbody>{pbdSubjects.map(s=><tr key={s.code}><td><strong>{s.name}</strong></td>{pbdAssessments.map(a=>{const r=report.pbd.find(x=>(x.subject_code||x.subject)===s.code&&x.assessment===a.code);return <td key={a.code}>{r?<span className={`tp-orb tp-${r.tp}`}>TP{r.tp}</span>:'—'}</td>})}</tr>)}</tbody></table></div>
       </GlassCard>
     </div>}
