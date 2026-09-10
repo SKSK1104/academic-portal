@@ -93,11 +93,9 @@ export function PbdAnalysisPage() {
   const enrolmentById = useMemo(() => new Map(enrolments.map((e) => [e.id,e])), [enrolments]);
 
   const availableSubjects = useMemo(() => {
-    const scopeYears = new Set(enrolments.map((e) => Number(e.year_level)));
-    const enabled = new Set(offerings.filter((o) => o.pbd_enabled && (scopeYears.size === 0 || scopeYears.has(Number(o.year_level)))).map((o) => o.subject_id));
     const withData = new Set(rows.map((r) => r.subject_id));
-    return subjects.filter((s) => enabled.has(s.id) && withData.has(s.id)).sort((a,b) => a.name_ms.localeCompare(b.name_ms));
-  }, [subjects, offerings, enrolments, rows]);
+    return subjects.filter((s) => withData.has(s.id)).sort((a,b) => a.name_ms.localeCompare(b.name_ms));
+  }, [subjects, rows]);
 
   useEffect(() => {
     if (!availableSubjects.length) { setSubjectCode(''); return; }
@@ -108,24 +106,20 @@ export function PbdAnalysisPage() {
   const currentRows = useMemo(() => subject ? rows.filter((r) => r.subject_id === subject.id) : [], [rows, subject]);
   const summary = useMemo(() => buildPbdSummary(currentRows), [currentRows]);
 
-  const candidateEnrolments = useMemo(() => {
-    if (!subject) return [];
-    const enabledYears = new Set(offerings.filter((o) => o.subject_id === subject.id && o.pbd_enabled).map((o) => Number(o.year_level)));
-    return enrolments.filter((e) => {
-      if (!enabledYears.has(Number(e.year_level))) return false;
-      const religion = String(studentById.get(e.student_id)?.religion || '').trim().toUpperCase();
-      if (subject.code === 'PI') return religion.includes('ISLAM');
-      if (subject.code === 'PM') return religion.length > 0 && !religion.includes('ISLAM');
-      return true;
-    });
-  }, [subject, offerings, enrolments, studentById]);
-  const candidateCount = candidateEnrolments.length;
-  const recordedIds = useMemo(() => new Set(currentRows.map((r) => r.enrolment_id)), [currentRows]);
-  const recordedCount = recordedIds.size;
-  const missingRows = useMemo(() => candidateEnrolments.filter((e) => !recordedIds.has(e.id)).map((e) => studentById.get(e.student_id)?.name || '—').sort((a,b)=>a.localeCompare(b)), [candidateEnrolments, recordedIds, studentById]);
+  const actualEnrolmentIds = useMemo(() => new Set(currentRows.map((r) => r.enrolment_id)), [currentRows]);
+  const candidateCount = summary.total;
   const mtmPct = candidateCount ? summary.mtm / candidateCount * 100 : 0;
   const interventionPct = candidateCount ? summary.intervention / candidateCount * 100 : 0;
-  const mbpkCount = useMemo(() => new Set(candidateEnrolments.filter((e) => String(studentById.get(e.student_id)?.oku_status || '').toUpperCase() === 'YA').map((e) => e.student_id)).size,[candidateEnrolments,studentById]);
+  const mbpkCount = useMemo(() => {
+    const ids = new Set<string>();
+    for (const enrolmentId of actualEnrolmentIds) {
+      const enrolment = enrolmentById.get(enrolmentId);
+      if (!enrolment) continue;
+      const student = studentById.get(enrolment.student_id);
+      if (String(student?.oku_status || '').toUpperCase() === 'YA') ids.add(enrolment.student_id);
+    }
+    return ids.size;
+  }, [actualEnrolmentIds, enrolmentById, studentById]);
 
   const tpMembership = useMemo(() => TP_ORDER.map((tpLabel) => {
     const tp = Number(String(tpLabel).replace(/\D/g,''));
@@ -169,7 +163,7 @@ export function PbdAnalysisPage() {
 
     {!hasPbd ? <GlassCard className="pbd-empty-state premium-card"><strong>Belum ada data PBD untuk {year}</strong><span>Import fail PBD individu melalui Import Data.</span></GlassCard> : <>
       <div className="stats-grid four">
-        <StatCard icon={Users} label="Bilangan Calon" value={candidateCount} hint={`${recordedCount} direkod · ${missingRows.length} belum direkod`}/>
+        <StatCard icon={Users} label="Bilangan Calon" value={candidateCount} hint="Jumlah rekod TP"/>
         <StatCard icon={Accessibility} label="MBPK" value={mbpkCount}/>
         <StatCard icon={Target} label="MTM" value={summary.mtm} hint={`${mtmPct.toFixed(1)}% · TP3–TP6`} tone="amber"/>
         <StatCard icon={AlertTriangle} label="Intervensi" value={summary.intervention} hint={`${interventionPct.toFixed(1)}% · TP1–TP2`} tone="red"/>
@@ -179,20 +173,18 @@ export function PbdAnalysisPage() {
         <div className="pbd-stack">
           <GlassCard className="chart-card premium-card pbd-distribution-card">
             <div className="card-toolbar"><div><h2>Taburan Tahap Penguasaan</h2><p>{assessment?.code} · {subject?.name_ms || ''}</p></div><span className="status-chip">Klik bar untuk nama murid</span></div>
-            <div className="pbd-chart-height">{loading ? <div className="empty-inline">Memuatkan analisis…</div> : <ResponsiveContainer width="100%" height="100%"><BarChart data={tpChartData} margin={{top:48,right:24,bottom:14,left:8}} barCategoryGap="28%"><CartesianGrid vertical={false}/><XAxis dataKey="tp" tickLine={false} axisLine={{stroke:'#aaa89d'}} tick={{fontSize:17,fontWeight:900}}/><YAxis allowDecimals={false} tickLine={false} axisLine={false} tick={{fontSize:14}}/><Tooltip formatter={(v) => [`${v} murid`, 'Bilangan']} contentStyle={{background:'#fffefa',border:'1px solid #c9c7bd',borderRadius:2,fontSize:14}}/><Bar dataKey="count" fill="#d5a900" radius={[3,3,0,0]} cursor="pointer" onClick={(data:any) => { const tp=String(data?.payload?.tp || data?.tp || ''); const found=tpMembership.find((x)=>x.tp===tp); if(found) setDrilldown({tp,names:found.names}); }}><LabelList dataKey="count" position="top" className="pbd-bar-label"/></Bar></BarChart></ResponsiveContainer>}</div>
+            <div className="pbd-chart-height">{loading ? <div className="empty-inline">Memuatkan analisis…</div> : <ResponsiveContainer width="100%" height="100%"><BarChart data={tpChartData} margin={{top:48,right:24,bottom:14,left:8}} barCategoryGap="28%"><CartesianGrid vertical={false}/><XAxis dataKey="tp" tickLine={false} axisLine={{stroke:'#aaa89d'}} tick={{fontSize:17,fontWeight:900}}/><YAxis allowDecimals={false} tickLine={false} axisLine={false} tick={{fontSize:14}}/><Tooltip formatter={(v) => [`${v} murid`, 'Bilangan']} contentStyle={{background:'#071226',border:'1px solid rgba(89,184,255,.3)',borderRadius:12,fontSize:14,color:'#fff'}}/><Bar dataKey="count" fill="#2c8cff" radius={[6,6,0,0]} cursor="pointer" onClick={(data:any) => { const tp=String(data?.payload?.tp || data?.tp || ''); const found=tpMembership.find((x)=>x.tp===tp); if(found) setDrilldown({tp,names:found.names}); }}><LabelList dataKey="count" position="top" className="pbd-bar-label"/></Bar></BarChart></ResponsiveContainer>}</div>
           </GlassCard>
 
           <GlassCard className="summary-panel intervention-card premium-card"><div className="intervention-body"><h3>Senarai Murid Memerlukan Intervensi ({interventionRows.length})</h3>{interventionRows.length ? <table className="intervention-table"><thead><tr><th>Bil</th><th>Nama Murid</th><th>TP</th></tr></thead><tbody>{interventionRows.map((r,i)=><tr key={r.id}><td>{i+1}</td><td>{r.name}</td><td className="score">TP{r.tp}</td></tr>)}</tbody></table> : <div className="empty-inline">Tiada murid dalam kategori intervensi.</div>}</div></GlassCard>
-
-          {missingRows.length > 0 && <GlassCard className="summary-panel premium-card"><div className="intervention-body"><h3>Belum Direkod ({missingRows.length})</h3><ol className="grade-modal-list">{missingRows.map((name)=><li key={name}>{name}</li>)}</ol></div></GlassCard>}
         </div>
 
-        <GlassCard className="target-panel premium-card pbd-rumusan-card"><div><h3>Rumusan PBD</h3><div className="target-number">{summary.mtm}<small> MTM</small></div></div><div className="target-meta"><div>Calon: <strong>{candidateCount}</strong></div><div style={{marginTop:8}}>Direkod: <strong>{recordedCount}/{candidateCount}</strong></div><div style={{marginTop:8}}>Belum direkod: <strong>{missingRows.length}</strong></div><div style={{marginTop:8}}>TP3–TP6: <strong>{mtmPct.toFixed(1)}%</strong></div><div style={{marginTop:8}}>TP1–TP2: <strong style={{color:'var(--red)'}}>{interventionPct.toFixed(1)}%</strong></div></div></GlassCard>
+        <GlassCard className="target-panel premium-card pbd-rumusan-card"><div><h3>Rumusan PBD</h3><div className="target-number">{summary.mtm}<small> MTM</small></div></div><div className="target-meta"><div>Calon: <strong>{candidateCount}</strong></div><div style={{marginTop:8}}>TP1–TP6: <strong>{candidateCount}</strong></div><div style={{marginTop:8}}>TP3–TP6: <strong>{mtmPct.toFixed(1)}%</strong></div><div style={{marginTop:8}}>TP1–TP2: <strong style={{color:'var(--red)'}}>{interventionPct.toFixed(1)}%</strong></div></div></GlassCard>
       </div>
 
-      {assessments.length > 1 && <GlassCard className="summary-panel premium-card pbd-round-card"><div className="card-toolbar"><div><h2>Perbandingan Pusingan PBD</h2><p>Bilangan murid</p></div><span className="status-chip">{classDisplay}</span></div><div className="pbd-round-chart"><ResponsiveContainer width="100%" height="100%"><BarChart data={roundTrend} margin={{top:42,right:24,bottom:10,left:8}} barGap={10}><CartesianGrid vertical={false}/><XAxis dataKey="code" tickLine={false} axisLine={{stroke:'#aaa89d'}} tick={{fontSize:16,fontWeight:800}}/><YAxis allowDecimals={false} tickLine={false} axisLine={false}/><Tooltip contentStyle={{background:'#fffefa',border:'1px solid #c9c7bd',borderRadius:2,fontSize:14}}/><Legend wrapperStyle={{fontSize:14,fontWeight:800}}/><Bar dataKey="mtm" name="MTM" fill="#d5a900" radius={[3,3,0,0]}><LabelList dataKey="mtm" position="top" className="pbd-bar-label"/></Bar><Bar dataKey="intervention" name="Intervensi" fill="#9e3036" radius={[3,3,0,0]}><LabelList dataKey="intervention" position="top" className="pbd-bar-label"/></Bar></BarChart></ResponsiveContainer></div></GlassCard>}
+      {assessments.length > 1 && <GlassCard className="summary-panel premium-card pbd-round-card"><div className="card-toolbar"><div><h2>Perbandingan Pusingan PBD</h2><p>Bilangan murid</p></div><span className="status-chip">{classDisplay}</span></div><div className="pbd-round-chart"><ResponsiveContainer width="100%" height="100%"><BarChart data={roundTrend} margin={{top:42,right:24,bottom:10,left:8}} barGap={10}><CartesianGrid vertical={false}/><XAxis dataKey="code" tickLine={false} axisLine={{stroke:'#6f86a2'}} tick={{fontSize:16,fontWeight:800}}/><YAxis allowDecimals={false} tickLine={false} axisLine={false}/><Tooltip contentStyle={{background:'#071226',border:'1px solid rgba(89,184,255,.3)',borderRadius:12,fontSize:14,color:'#fff'}}/><Legend wrapperStyle={{fontSize:14,fontWeight:800}}/><Bar dataKey="mtm" name="MTM" fill="#2ae6b5" radius={[6,6,0,0]}><LabelList dataKey="mtm" position="top" className="pbd-bar-label"/></Bar><Bar dataKey="intervention" name="Intervensi" fill="#ff6d8a" radius={[6,6,0,0]}><LabelList dataKey="intervention" position="top" className="pbd-bar-label"/></Bar></BarChart></ResponsiveContainer></div></GlassCard>}
 
-      <GlassCard className="summary-panel premium-card pbd-membership-card"><div className="card-toolbar"><div><h2>Senarai Murid Mengikut Tahap Penguasaan</h2></div><span className="status-chip">Cetakan lengkap</span></div><div className="pbd-membership-scroll"><table className="data-table pbd-membership-table"><thead><tr><th>TP</th><th>Bilangan</th><th>Nama Murid</th></tr></thead><tbody>{tpMembership.map((r)=><tr key={r.tp}><td><strong>{r.tp}</strong></td><td><strong>{r.count}</strong></td><td>{r.names.length ? r.names.join(', ') : <span className="muted-cell">Tiada murid</span>}</td></tr>)}{missingRows.length>0 && <tr><td><strong>Belum Direkod</strong></td><td><strong>{missingRows.length}</strong></td><td>{missingRows.join(', ')}</td></tr>}</tbody></table></div></GlassCard>
+      <GlassCard className="summary-panel premium-card pbd-membership-card"><div className="card-toolbar"><div><h2>Senarai Murid Mengikut Tahap Penguasaan</h2></div><span className="status-chip">Cetakan lengkap</span></div><div className="pbd-membership-scroll"><table className="data-table pbd-membership-table"><thead><tr><th>TP</th><th>Bilangan</th><th>Nama Murid</th></tr></thead><tbody>{tpMembership.map((r)=><tr key={r.tp}><td><strong>{r.tp}</strong></td><td><strong>{r.count}</strong></td><td>{r.names.length ? r.names.join(', ') : <span className="muted-cell">Tiada murid</span>}</td></tr>)}</tbody></table></div></GlassCard>
     </>}
 
     {drilldown && <div className="grade-modal-backdrop no-print" role="dialog" aria-modal="true" onMouseDown={(e)=>{if(e.currentTarget===e.target)setDrilldown(null)}}><div className="grade-modal"><div className="grade-modal-head"><div><span>{assessment?.code || 'PBD'}</span><h2>{drilldown.tp}</h2></div><button className="icon-button" onClick={()=>setDrilldown(null)} aria-label="Tutup"><X size={18}/></button></div><div className="grade-modal-count">{drilldown.names.length} murid</div>{drilldown.names.length ? <ol className="grade-modal-list">{drilldown.names.map((name)=><li key={name}>{name}</li>)}</ol> : <div className="empty-inline">Tiada murid.</div>}</div></div>}
