@@ -95,9 +95,9 @@ export function PbdAnalysisPage() {
   const availableSubjects = useMemo(() => {
     const scopeYears = new Set(enrolments.map((e) => Number(e.year_level)));
     const enabled = new Set(offerings.filter((o) => o.pbd_enabled && (scopeYears.size === 0 || scopeYears.has(Number(o.year_level)))).map((o) => o.subject_id));
-    const withData = new Set(roundRows.map((r) => r.subject_id));
+    const withData = new Set(rows.map((r) => r.subject_id));
     return subjects.filter((s) => enabled.has(s.id) && withData.has(s.id)).sort((a,b) => a.name_ms.localeCompare(b.name_ms));
-  }, [subjects, offerings, enrolments, roundRows]);
+  }, [subjects, offerings, enrolments, rows]);
 
   useEffect(() => {
     if (!availableSubjects.length) { setSubjectCode(''); return; }
