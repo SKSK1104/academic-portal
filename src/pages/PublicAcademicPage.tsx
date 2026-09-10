@@ -19,6 +19,7 @@ interface SummaryRow {
 interface PublicAssessment { code: string; kind: string; title: string; sequence_no: number | null; }
 interface PublicClass { class_name: string; year_level: number; }
 interface CohortSummary { candidates: number; mbpk: number; }
+interface SubjectCohort { subject_code: string; candidates: number; mbpk: number; }
 
 export function PublicAcademicPage() {
   const [years, setYears] = useState<number[]>([]);
@@ -30,6 +31,7 @@ export function PublicAcademicPage() {
   const [rows, setRows] = useState<SummaryRow[]>([]);
   const [subjectCode, setSubjectCode] = useState('ALL');
   const [cohort, setCohort] = useState<CohortSummary>({ candidates: 0, mbpk: 0 });
+  const [subjectCohorts, setSubjectCohorts] = useState<SubjectCohort[]>([]);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -57,21 +59,26 @@ export function PublicAcademicPage() {
   async function load() {
     setError('');
     const classArg = className === 'ALL' ? null : className;
-    const [summaryResult, cohortResult] = await Promise.all([
+    const currentAssessment = assessments.find((a) => a.code === assessment);
+    const mode = currentAssessment?.kind === 'UASA' ? 'UASA' : 'AR';
+    const [summaryResult, cohortResult, subjectCohortResult] = await Promise.all([
       supabase.rpc('v2_public_academic_summary', { p_year: year, p_assessment_code: assessment, p_class_name: classArg }),
       supabase.rpc('v2_public_academic_cohort_summary', { p_year: year, p_assessment_code: assessment, p_class_name: classArg }),
+      supabase.rpc('v2_public_subject_cohorts', { p_year: year, p_class_name: classArg, p_mode: mode }),
     ]);
-    if (summaryResult.error || cohortResult.error) {
-      setError(summaryResult.error?.message || cohortResult.error?.message || 'Ralat memuatkan data.');
-      setRows([]); setCohort({ candidates: 0, mbpk: 0 }); return;
+    if (summaryResult.error || cohortResult.error || subjectCohortResult.error) {
+      setError(summaryResult.error?.message || cohortResult.error?.message || subjectCohortResult.error?.message || 'Ralat memuatkan data.');
+      setRows([]); setCohort({ candidates: 0, mbpk: 0 }); setSubjectCohorts([]); return;
     }
     setRows((summaryResult.data || []) as SummaryRow[]);
     const c = (cohortResult.data || [])[0] as CohortSummary | undefined;
     setCohort({ candidates: Number(c?.candidates || 0), mbpk: Number(c?.mbpk || 0) });
+    setSubjectCohorts(((subjectCohortResult.data || []) as SubjectCohort[]).map((x) => ({ subject_code: x.subject_code, candidates: Number(x.candidates || 0), mbpk: Number(x.mbpk || 0) })));
     setSubjectCode('ALL');
   }
 
   const selectedRow = useMemo(() => rows.find((r) => r.subject_code === subjectCode) || null, [rows, subjectCode]);
+  const selectedCohort = useMemo(() => subjectCohorts.find((c) => c.subject_code === subjectCode) || null, [subjectCohorts, subjectCode]);
   const visibleRows = useMemo(() => subjectCode === 'ALL' ? rows : rows.filter((r) => r.subject_code === subjectCode), [rows, subjectCode]);
   const mtmCount = selectedRow ? Number(selectedRow.A || 0) + Number(selectedRow.B || 0) + Number(selectedRow.C || 0) + Number(selectedRow.D || 0) + Number(selectedRow.E || 0) : 0;
   const interventionCount = selectedRow ? Number(selectedRow.F || 0) : 0;
@@ -86,15 +93,16 @@ export function PublicAcademicPage() {
     </div></GlassCard>
     {error && <div className="notice">{error}</div>}
     <div className="stats-grid four">
-      <StatCard icon={Users} label="Bilangan Calon" value={cohort.candidates}/>
-      <StatCard icon={Accessibility} label="MBPK" value={cohort.mbpk}/>
+      <StatCard icon={Users} label="Bilangan Calon" value={selectedRow ? Number(selectedCohort?.candidates || 0) : cohort.candidates}/>
+      <StatCard icon={Accessibility} label="MBPK" value={selectedRow ? Number(selectedCohort?.mbpk || 0) : cohort.mbpk}/>
       <StatCard icon={Target} label={selectedRow ? `Jumlah MTM — ${selectedRow.subject_name}` : 'Jumlah MTM'} value={selectedRow ? `${mtmCount} (${Number(selectedRow.mtm_pct || 0).toFixed(1)}%)` : '—'} hint={selectedRow ? undefined : 'Pilih mata pelajaran'} tone="amber"/>
       <StatCard icon={AlertTriangle} label={selectedRow ? `Jumlah Intervensi — ${selectedRow.subject_name}` : 'Jumlah Intervensi'} value={selectedRow ? `${interventionCount} (${Number(selectedRow.intervention_pct || 0).toFixed(1)}%)` : '—'} hint={selectedRow ? 'Gred F' : 'Pilih mata pelajaran'} tone="red"/>
     </div>
     <div className="subject-analysis-list">{visibleRows.map((r) => {
       const items = GRADE_ORDER.map((g) => ({ label: g, count: Number(r[g] || 0), pct: r.total ? Number(r[g] || 0) / r.total * 100 : 0 }));
       const subjectMtm = Number(r.A || 0) + Number(r.B || 0) + Number(r.C || 0) + Number(r.D || 0) + Number(r.E || 0);
-      return <GlassCard className="subject-card" key={r.subject_code}><div className="subject-card-head"><div><div className="eyebrow">{assessment}</div><h2>{r.subject_name}</h2></div><div className="metric-pair"><span>Bilangan Calon<strong>{Number(r.total || 0)}</strong></span><span>Bilangan Hadir<strong>{Number(r.attended || 0)}</strong></span><span>TH<strong>{Number(r.TH || 0)}</strong></span><span>MTM<strong>{subjectMtm} ({Number(r.mtm_pct || 0).toFixed(1)}%)</strong></span><span>Intervensi<strong>{Number(r.F || 0)} ({Number(r.intervention_pct || 0).toFixed(1)}%)</strong></span></div></div><div className="subject-card-body single"><DistributionBars items={items}/></div></GlassCard>;
+      const sc = subjectCohorts.find((c) => c.subject_code === r.subject_code);
+      return <GlassCard className="subject-card" key={r.subject_code}><div className="subject-card-head"><div><div className="eyebrow">{assessment}</div><h2>{r.subject_name}</h2></div><div className="metric-pair"><span>Bilangan Calon<strong>{Number(sc?.candidates || 0)}</strong></span><span>Bilangan Hadir<strong>{Number(r.attended || 0)}</strong></span><span>TH<strong>{Number(r.TH || 0)}</strong></span><span>MTM<strong>{subjectMtm} ({Number(r.mtm_pct || 0).toFixed(1)}%)</strong></span><span>Intervensi<strong>{Number(r.F || 0)} ({Number(r.intervention_pct || 0).toFixed(1)}%)</strong></span></div></div><div className="subject-card-body single"><DistributionBars items={items}/></div></GlassCard>;
     })}</div>
   </div>;
 }
