@@ -89,7 +89,7 @@ export function ParentSearchPage(){
       <section className="parent-lookup-stage">
         <div className="lookup-copy">
           <h1>Menelusuri, memahami, membimbing.</h1>
-          <p>Demi membimbing kejayaan masa depan.</p>
+          <p>Demi membina kejayaan masa hadapan.</p>
         </div>
         <GlassCard className="parent-search-card premium-parent-card">
           <form onSubmit={submit}>
