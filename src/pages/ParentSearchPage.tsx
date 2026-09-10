@@ -88,12 +88,12 @@ export function ParentSearchPage(){
       <PageHeader title="Semakan Ibu Bapa" />
       <section className="parent-lookup-stage">
         <div className="lookup-copy">
-          <h1>Fahami pencapaian anak.<br/>Jejaki perkembangannya.</h1>
-          <p>Masukkan MyKid untuk melihat rekod akademik dan PBD yang direkodkan oleh sekolah.</p>
+          <h1>Menelusuri, memahami, membimbing.</h1>
+          <p>Demi membimbing kejayaan masa depan.</p>
         </div>
         <GlassCard className="parent-search-card premium-parent-card">
           <form onSubmit={submit}>
-            <label>MyKid</label>
+            <label>Masukkan MyKid</label>
             <div className="parent-search-row"><input inputMode="numeric" maxLength={14} value={mykid} onChange={e=>setMykid(e.target.value)} placeholder="Contoh: 19010113XXXX"/><button className="btn btn-primary parent-search-button" disabled={busy}><Search size={18}/>{busy?'Menyemak...':'Semak'}</button></div>
           </form>
           <div className="privacy-note"><ShieldCheck size={15}/>Carian terus ke rekod murid yang sepadan.</div>
