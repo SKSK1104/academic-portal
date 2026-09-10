@@ -11,6 +11,7 @@ import './hotfix.css';
 import './pbd-analysis-fix.css';
 import './parent-report.css';
 import './liquid-glass.css';
+import './liquid-metal.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
