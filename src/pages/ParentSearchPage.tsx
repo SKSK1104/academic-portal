@@ -80,7 +80,6 @@ export function ParentSearchPage(){
   const interventionSubjects=latestRows.filter(r=>r.grade==='F').length;
   const latestPbdRows=report?.pbd.filter(r=>r.assessment===latestPbd)||[];
   const pbdMtm=latestPbdRows.filter(r=>r.tp>=3).length;
-  const averageTp=latestPbdRows.length?latestPbdRows.reduce((s,r)=>s+Number(r.tp),0)/latestPbdRows.length:null;
   const trendDelta=academicTrend.length>1?academicTrend[academicTrend.length-1].average-academicTrend[0].average:null;
   const initials=report?.student.name.split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('')||'';
 
@@ -138,7 +137,6 @@ export function ParentSearchPage(){
 
         <GlassCard className="parent-chart-card parent-pbd-feature premium-parent-card">
           <div className="parent-section-head"><div><span>PBD · {latestPbd||'—'}</span><h2>Taburan Tahap Penguasaan</h2><p>Bilangan mata pelajaran mengikut TP terkini</p></div><BookOpenCheck size={21}/></div>
-          <div className="parent-pbd-summary"><strong>{averageTp===null?'—':`TP${averageTp.toFixed(1)}`}</strong><span>Purata tahap<br/>penguasaan</span></div>
           <div className="parent-chart-frame compact">
             <ResponsiveContainer width="100%" height="100%"><BarChart data={tpDistribution} margin={{top:32,right:8,left:-8,bottom:0}} barCategoryGap="24%"><CartesianGrid vertical={false} strokeDasharray="3 7"/><XAxis dataKey="tp" tickLine={false} axisLine={false}/><YAxis allowDecimals={false} tickLine={false} axisLine={false}/><Tooltip cursor={{fill:'rgba(154,119,32,.05)'}} formatter={(v:any)=>[v,'Mata pelajaran']}/><Bar dataKey="count" radius={[8,8,2,2]} maxBarSize={58}>{tpDistribution.map((d,i)=><Cell key={d.tp} className={`parent-tp-bar parent-tp-bar-${i+1}`}/>) }<LabelList dataKey="count" position="top" formatter={(v:any)=>String(v)}/></Bar></BarChart></ResponsiveContainer>
           </div>
