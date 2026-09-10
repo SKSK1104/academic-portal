@@ -1,6 +1,6 @@
 import { Accessibility, AlertTriangle, CalendarCheck, FileQuestion, Printer, Target, Users, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { Bar, BarChart, CartesianGrid, LabelList, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { GlassCard } from '../components/GlassCard';
 import { PageHeader } from '../components/PageHeader';
 import { StatCard } from '../components/StatCard';
@@ -211,6 +211,28 @@ export function AcademicAnalysisPage() {
   const classDisplay = className === 'ALL' ? 'Seluruh Sekolah' : `${classes.find((c) => c.className === className)?.yearLevel || ''} ${formatClass(className)}`.trim();
 
   return <>
+    <style>{`
+      .academic-mobile-events{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(96px,1fr))!important;gap:8px!important;padding:10px 0!important}
+      .academic-mobile-events>div{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;min-width:0!important;padding:9px 11px!important;border:1px solid rgba(124,205,255,.18)!important;border-radius:12px!important;background:rgba(7,27,50,.56)!important}
+      .academic-mobile-events strong{font-size:12px!important;letter-spacing:.08em!important;color:#9feaff!important}
+      .academic-mobile-events span{font-size:13px!important;font-weight:800!important;color:#fff!important;white-space:nowrap!important}
+      .grade-progression-card .grade-progression-chart{height:300px!important;min-height:300px!important}
+      .grade-progression-card .recharts-bar-rectangle path{filter:drop-shadow(0 4px 8px rgba(0,0,0,.20))}
+      .trajectory-card .recharts-bar-rectangle path{filter:drop-shadow(0 5px 10px rgba(255,191,46,.20))}
+      .performance-summary-wide .summary-row{background:rgba(7,25,47,.42)!important;border:1px solid rgba(126,199,244,.14)!important;border-radius:12px!important;padding:11px 13px!important}
+      .performance-summary-grid{gap:8px!important}
+      @media(max-width:780px){
+        .grade-chart-toolbar{align-items:flex-start!important;gap:10px!important;flex-wrap:wrap!important}
+        .grade-chart-toolbar .status-chip{font-size:11px!important;max-width:210px!important;white-space:normal!important;line-height:1.2!important}
+        .academic-mobile-events{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+        .grade-progression-card .grade-progression-chart{height:270px!important;min-height:270px!important}
+        .trajectory-card .chart-height.large{height:260px!important}
+        .performance-summary-grid{display:grid!important;grid-template-columns:1fr 1fr!important}
+        .performance-summary-wide .summary-row{display:block!important;min-width:0!important}
+        .performance-summary-wide .summary-row span{display:block!important;font-size:12px!important;color:#a9bfd3!important}
+        .performance-summary-wide .summary-row strong{display:block!important;margin-top:4px!important;font-size:18px!important;color:#fff!important}
+      }
+    `}</style>
     <PageHeader title="Analisis Akademik" actions={<button className="btn btn-ghost" onClick={() => window.print()}><Printer size={16}/> Cetak</button>} />
 
     <GlassCard className="filter-card no-print"><div className="filter-grid four">
@@ -240,8 +262,8 @@ export function AcademicAnalysisPage() {
       <div className="trajectory-stack">
         <GlassCard className="chart-card trajectory-card premium-card">
           <div className="card-toolbar"><div><h2>Trajektori Prestasi</h2></div><div className="status-chip">TOV → AR → ETR</div></div>
-          <div className="event-visibility-strip">{trajectory.map((p) => <div key={p.code}><strong>{p.code}</strong><span>{p.value === null ? 'Tiada data' : p.value.toFixed(1)}</span></div>)}</div>
-          <div className="chart-height large">{loading ? <div className="empty-inline">Memuatkan analisis…</div> : trajectory.some((x) => x.value !== null) ? <ResponsiveContainer width="100%" height="100%"><BarChart data={trajectory} margin={{top:38,right:24,bottom:14,left:6}}><CartesianGrid vertical={false}/><XAxis dataKey="code" tickLine={false} axisLine={{stroke:'#aaa89d'}} tick={{fontSize:15,fontWeight:800}}/><YAxis domain={[0,100]} tickLine={false} axisLine={false} tick={{fontSize:14}}/><Tooltip formatter={(v) => [`${v}`, 'Purata']} contentStyle={{background:'#fffefa',border:'1px solid #c9c7bd',borderRadius:2,color:'#17191d',fontSize:14}}/><Bar dataKey="value" fill="#d5a900" radius={[3,3,0,0]} maxBarSize={110}><LabelList dataKey="value" position="top" formatter={(value: any) => value === null ? '' : Number(value).toFixed(1)} className="trajectory-bar-label"/></Bar></BarChart></ResponsiveContainer> : <div className="empty-inline">Tiada data trajektori.</div>}</div>
+          <div className="event-visibility-strip academic-mobile-events">{trajectory.map((p) => <div key={p.code}><strong>{p.code}</strong><span>{p.value === null ? 'Tiada data' : p.value.toFixed(1)}</span></div>)}</div>
+          <div className="chart-height large">{loading ? <div className="empty-inline">Memuatkan analisis…</div> : trajectory.some((x) => x.value !== null) ? <ResponsiveContainer width="100%" height="100%"><BarChart data={trajectory} margin={{top:34,right:14,bottom:8,left:0}}><CartesianGrid vertical={false}/><XAxis dataKey="code" tickLine={false} axisLine={{stroke:'rgba(172,211,239,.55)'}} tick={{fontSize:14,fontWeight:800,fill:'#b9ccdf'}}/><YAxis domain={[0,100]} width={38} tickLine={false} axisLine={false} tick={{fontSize:12,fill:'#9fb5ca'}}/><Tooltip formatter={(v) => [`${v}`, 'Purata']} contentStyle={{background:'rgba(5,20,39,.97)',border:'1px solid rgba(112,205,255,.38)',borderRadius:12,color:'#fff',fontSize:13}} labelStyle={{color:'#fff',fontWeight:800}} itemStyle={{color:'#ccecff'}}/><Bar dataKey="value" fill="#ffd166" radius={[8,8,2,2]} maxBarSize={72}><LabelList dataKey="value" position="top" formatter={(value: any) => value === null ? '' : Number(value).toFixed(1)} className="trajectory-bar-label"/></Bar></BarChart></ResponsiveContainer> : <div className="empty-inline">Tiada data trajektori.</div>}</div>
         </GlassCard>
 
         <GlassCard className="summary-panel intervention-card intervention-under-trajectory premium-card"><div className="intervention-body"><h3>Senarai Murid Memerlukan Intervensi ({interventionRows.length})</h3>{interventionRows.length ? <table className="intervention-table"><thead><tr><th>Bil</th><th>Nama Murid</th><th>Gred</th><th>Markah</th></tr></thead><tbody>{interventionRows.map((r,i) => <tr key={r.id}><td>{i+1}</td><td>{r.name}</td><td className="score">{r.grade}</td><td>{r.score ?? '—'}</td></tr>)}</tbody></table> : <div className="empty-inline">Tiada murid dalam kategori intervensi.</div>}</div></GlassCard>
@@ -254,9 +276,9 @@ export function AcademicAnalysisPage() {
     </div>
 
     <GlassCard className="summary-panel grade-progression-card premium-card">
-      <div className="card-toolbar grade-chart-toolbar"><div><h2>Taburan Gred</h2></div><span className="status-chip">Klik bar untuk senarai murid</span></div>
-      <div className="event-visibility-strip grade-event-strip">{eventCoverage.map((e) => <div key={e.code}><strong>{e.code}</strong><span>{e.total ? `${e.total} rekod` : 'Tiada data'}</span></div>)}</div>
-      <div className="grade-progression-chart">{selectedSubject && gradeProgression.length ? <ResponsiveContainer width="100%" height="100%"><BarChart data={gradeProgression} margin={{top:50,right:28,bottom:22,left:10}} barCategoryGap="22%" barGap={5}><CartesianGrid vertical={false}/><XAxis dataKey="grade" tickLine={false} axisLine={{stroke:'#aaa89d'}} tick={{fontSize:17,fontWeight:900}}/><YAxis allowDecimals={false} tickLine={false} axisLine={false} tick={{fontSize:14}}/><Tooltip formatter={(value, name) => [`${value} murid`, String(name)]} contentStyle={{background:'#fffefa',border:'1px solid #c9c7bd',borderRadius:2,color:'#17191d',fontSize:14}}/><Legend verticalAlign="bottom" height={42} wrapperStyle={{fontSize:14,fontWeight:800}}/>{progressEvents.map((event, index) => <Bar key={event.code} dataKey={event.code} name={event.label} fill={eventColor(index, progressEvents.length)} radius={[3,3,0,0]} cursor="pointer" onClick={(data: any) => openGradeDrilldown(event, String(data?.payload?.grade || data?.grade || ''))}><LabelList dataKey={event.labelKey} position="top" className="grade-bar-label"/></Bar>)}</BarChart></ResponsiveContainer> : <div className="empty-inline">Tiada data taburan gred.</div>}</div>
+      <div className="card-toolbar grade-chart-toolbar"><div><h2>Taburan Gred</h2></div><span className="status-chip">Ketuk bar untuk senarai murid</span></div>
+      <div className="event-visibility-strip grade-event-strip academic-mobile-events">{eventCoverage.map((e) => <div key={e.code}><strong>{e.code}</strong><span>{e.total ? `${e.total} rekod` : 'Tiada data'}</span></div>)}</div>
+      <div className="grade-progression-chart">{selectedSubject && gradeProgression.length ? <ResponsiveContainer width="100%" height="100%"><BarChart data={gradeProgression} margin={{top:20,right:8,bottom:8,left:0}} barCategoryGap="18%" barGap={2}><CartesianGrid vertical={false}/><XAxis dataKey="grade" tickLine={false} axisLine={{stroke:'rgba(172,211,239,.55)'}} tick={{fontSize:14,fontWeight:900,fill:'#c3d4e4'}}/><YAxis allowDecimals={false} width={34} tickLine={false} axisLine={false} tick={{fontSize:11,fill:'#9fb5ca'}}/><Tooltip formatter={(value, name) => [`${value} murid`, String(name)]} contentStyle={{background:'rgba(5,20,39,.97)',border:'1px solid rgba(112,205,255,.38)',borderRadius:12,color:'#fff',fontSize:13}} labelStyle={{color:'#fff',fontWeight:900}} itemStyle={{color:'#dff5ff'}}/>{progressEvents.map((event, index) => <Bar key={event.code} dataKey={event.code} name={event.label} fill={eventColor(index, progressEvents.length)} radius={[5,5,1,1]} maxBarSize={18} cursor="pointer" onClick={(data: any) => openGradeDrilldown(event, String(data?.payload?.grade || data?.grade || ''))}/>)}</BarChart></ResponsiveContainer> : <div className="empty-inline">Tiada data taburan gred.</div>}</div>
     </GlassCard>
 
     <GlassCard className="summary-panel performance-summary-wide premium-card"><h3>Rumusan Prestasi</h3><div className="performance-summary-grid"><div className="summary-row"><span>Purata TOV</span><strong>{tovAverage === null ? '—' : tovAverage.toFixed(1)}</strong></div><div className="summary-row"><span>Purata {assessment?.code || 'AR'}</span><strong>{currentAverage === null ? '—' : currentAverage.toFixed(1)}</strong></div><div className="summary-row"><span>ETR</span><strong>{etrAverage === null ? '—' : etrAverage.toFixed(1)}</strong></div><div className="summary-row"><span>MTM</span><strong>{summary.mtm} ({summary.mtmPct.toFixed(1)}%)</strong></div><div className="summary-row"><span>Intervensi</span><strong>{summary.intervention} ({summary.interventionPct.toFixed(1)}%)</strong></div></div></GlassCard>
@@ -290,9 +312,9 @@ function gradeMembers(event: ProgressEvent, grade: string, subjectId: string, be
 }
 
 function eventColor(index: number, total: number) {
-  if (index === 0) return '#17191d';
-  if (index === total - 1) return '#d5a900';
-  const palette = ['#777a75', '#aaa58f', '#8a7550', '#b9a969', '#5d605d', '#c0b480'];
+  if (index === 0) return '#42dcff';
+  if (index === total - 1) return '#ffd166';
+  const palette = ['#5b8cff', '#9f78ff', '#ff72bf', '#4ee2b1', '#ff9f43'];
   return palette[(index - 1) % palette.length];
 }
 function average(values: Array<number | null>) {
