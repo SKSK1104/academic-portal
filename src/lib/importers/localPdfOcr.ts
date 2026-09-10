@@ -5,12 +5,31 @@ import type { ParsedPdfDocument } from '../types';
 GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString();
 
 const SUBJECTS = ['BM','BI','MM','SAINS','SEJ','PAI','PM','BIN','RBT','PSV','PMZ','PJPK'];
+const CLASS_ALIASES: Array<[RegExp,string]> = [
+  [/\bCAHAYA\b/i,'CAHAYA'],
+  [/\bSINARAN\b/i,'SINARAN'],
+  [/\bKERLIPAN\b/i,'KERLIPAN'],
+  [/\b(?:BISTARI|BESTARI)\b/i,'BISTARI'],
+  [/\bBIJAKSANA\b/i,'BIJAKSANA'],
+  [/\bGEMILANG\b/i,'GEMILANG']
+];
 
 type Word = { text:string; x0:number; y0:number; x1:number; y1:number; cx:number; cy:number };
 type Page = { width:number; height:number; text:string; words:Word[] };
 
 function clean(s:string){ return s.replace(/\s+/g,' ').trim(); }
 function up(s:string){ return clean(s).toUpperCase(); }
+function canonicalClassName(value:string){
+  const normalized=up(value).replace(/[^A-Z0-9 ]/g,' ');
+  for(const [pattern,name] of CLASS_ALIASES) if(pattern.test(normalized)) return name;
+  return normalized
+    .replace(/^KELAS\s*:?\s*/,'')
+    .replace(/^TAHUN\s+(?:SATU|DUA|TIGA|EMPAT|LIMA|ENAM|[1-6])\s*/,'')
+    .replace(/^[1-6]\s+/,'')
+    .replace(/BESTARI/g,'BISTARI')
+    .replace(/\s+/g,' ')
+    .trim();
+}
 
 async function readPages(file:File, progress?:(s:string)=>void):Promise<Page[]> {
   const pdf = await getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;
@@ -40,10 +59,19 @@ function metadata(text:string){
   const t=up(text);
   const year=(t.match(/(?:TAHUN|SESI(?: AKADEMIK)?)\s+(20\d{2})/)||t.match(/\b(20\d{2})\b/))?.[1];
   const yearWords:[RegExp,number][]=[[/TAHUN SATU/,1],[/TAHUN DUA/,2],[/TAHUN TIGA/,3],[/TAHUN EMPAT/,4],[/TAHUN LIMA/,5],[/TAHUN ENAM/,6]];
-  let level:number|null=null; for(const [p,n] of yearWords) if(p.test(t)){level=n;break;} if(!level){const m=t.match(/TAHUN\s+([1-6])\b/);if(m)level=Number(m[1]);}
-  const cm=t.match(/KELAS\s*:?\s*(?:TAHUN\s*)?([1-6]\s+[A-Z][A-Z ]{2,30})/)||t.match(/\b([1-6]\s+(?:BISTARI|BIJAKSANA|GEMILANG|[A-Z]{3,20}))\b/);
+  let level:number|null=null;
+  for(const [p,n] of yearWords) if(p.test(t)){level=n;break;}
+  if(!level){const m=t.match(/TAHUN\s+([1-6])\b/);if(m)level=Number(m[1]);}
+
+  let className:string|null=null;
+  for(const [pattern,name] of CLASS_ALIASES){ if(pattern.test(t)){ className=name; break; } }
+  if(!className){
+    const cm=t.match(/KELAS\s*:?\s*(?:TAHUN\s*)?([1-6]?\s*[A-Z][A-Z ]{2,30})/)||t.match(/\b([1-6]\s+[A-Z]{3,20})\b/);
+    if(cm) className=canonicalClassName(cm[1]);
+  }
+
   const am=t.match(/AKTIVITI\s*:?\s*([^\n]{5,80})/)||t.match(/(UJIAN AKHIR SESI AKADEMIK)/)||t.match(/(PENTAKSIRAN PERTENGAHAN SESI AKADEMIK)/);
-  return {school_year:year?Number(year):null,year_level:level,class_name:cm?clean(cm[1]).replace(/BESTARI/g,'BISTARI'):null,activity:am?clean(am[1]):null};
+  return {school_year:year?Number(year):null,year_level:level,class_name:className,activity:am?clean(am[1]):null};
 }
 
 function typeOf(text:string,hint:'AUTO'|'UASA'|'PBD'):ParsedPdfDocument['doc_type']{
@@ -82,5 +110,12 @@ function summary(pages:Page[]){
 }
 
 export async function parsePdfLocally(file:File,hint:'AUTO'|'UASA'|'PBD'='AUTO',progress?:(s:string)=>void):Promise<ParsedPdfDocument>{
-  if(file.type!=='application/pdf'&&!file.name.toLowerCase().endsWith('.pdf'))throw new Error('Fail mestilah PDF.');const pages=await readPages(file,progress);const text=pages.map(p=>p.text).join('\n');const doc_type=typeOf(text,hint);if(doc_type==='UNKNOWN')throw new Error('Jenis laporan tidak dapat dikenal pasti sebagai UASA atau PBD.');const meta=metadata(text);const base:ParsedPdfDocument={doc_type,school_name:/SIMPANG\s+KUDA/i.test(text)?'SEKOLAH KEBANGSAAN SIMPANG KUDA':null,...meta,subjects:SUBJECTS.map(c=>({label:c,code_hint:c})),warnings:[]};if(doc_type==='PBD_SUMMARY'){const r=summary(pages);base.summary=r.summary;base.warnings=r.warnings;}else{const r=individual(pages,doc_type);base.rows=r.rows;base.warnings=r.warnings;if(!r.rows.length)throw new Error('Tiada baris murid dapat dibaca daripada PDF.');}return base;
+  if(file.type!=='application/pdf'&&!file.name.toLowerCase().endsWith('.pdf'))throw new Error('Fail mestilah PDF.');
+  const pages=await readPages(file,progress);const text=pages.map(p=>p.text).join('\n');const doc_type=typeOf(text,hint);
+  if(doc_type==='UNKNOWN')throw new Error('Jenis laporan tidak dapat dikenal pasti sebagai UASA atau PBD.');
+  const meta=metadata(text);
+  const base:ParsedPdfDocument={doc_type,school_name:/SIMPANG\s+KUDA/i.test(text)?'SEKOLAH KEBANGSAAN SIMPANG KUDA':null,...meta,subjects:SUBJECTS.map(c=>({label:c,code_hint:c})),warnings:[]};
+  if(doc_type==='PBD_SUMMARY'){const r=summary(pages);base.summary=r.summary;base.warnings=r.warnings;}
+  else{const r=individual(pages,doc_type);base.rows=r.rows;base.warnings=r.warnings;if(!r.rows.length)throw new Error('Tiada baris murid dapat dibaca daripada PDF.');}
+  return base;
 }
