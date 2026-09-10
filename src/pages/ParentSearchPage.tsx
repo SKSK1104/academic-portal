@@ -88,7 +88,7 @@ export function ParentSearchPage(){
       <PageHeader title="Semakan Ibu Bapa" />
       <section className="parent-lookup-stage">
         <div className="lookup-copy">
-          <h1>Prestasi anak,<br/>dalam satu pandangan.</h1>
+          <h1>Fahami pencapaian anak.<br/>Jejaki perkembangannya.</h1>
           <p>Masukkan MyKid untuk melihat rekod akademik dan PBD yang direkodkan oleh sekolah.</p>
         </div>
         <GlassCard className="parent-search-card premium-parent-card">
