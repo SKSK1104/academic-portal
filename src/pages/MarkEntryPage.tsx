@@ -150,6 +150,26 @@ export function MarkEntryPage() {
   }
 
   return <>
+    <style>{`
+      .ar-entry-scroll{overflow:auto!important;-webkit-overflow-scrolling:touch;position:relative}
+      .ar-round-table{width:max-content!important;min-width:100%!important;border-collapse:separate!important;border-spacing:0!important}
+      .ar-round-table th,.ar-round-table td{white-space:nowrap!important}
+      .ar-round-table th:first-child,.ar-round-table td:first-child{width:48px!important;min-width:48px!important;max-width:48px!important;text-align:center!important}
+      .ar-round-table .student-name,.ar-round-table th:nth-child(2){min-width:250px!important;max-width:250px!important;width:250px!important;white-space:normal!important;line-height:1.25!important}
+      .ar-round-table input{width:72px!important;min-width:72px!important;text-align:center!important}
+      @media(max-width:780px){
+        .ar-entry-card{overflow:visible!important}
+        .ar-entry-scroll{max-height:none!important;border-radius:0 0 18px 18px!important}
+        .ar-round-table th:first-child,.ar-round-table td:first-child{position:sticky!important;left:0!important;z-index:8!important;background:#071a30!important;box-shadow:1px 0 0 rgba(130,205,255,.18)!important}
+        .ar-round-table th:nth-child(2),.ar-round-table td:nth-child(2){position:sticky!important;left:48px!important;z-index:7!important;background:#081d35!important;box-shadow:10px 0 20px rgba(0,0,0,.28),1px 0 0 rgba(130,205,255,.24)!important}
+        .ar-round-table thead th:first-child,.ar-round-table thead th:nth-child(2){z-index:12!important;background:#0b2744!important}
+        .ar-round-table .student-name,.ar-round-table th:nth-child(2){min-width:190px!important;max-width:190px!important;width:190px!important;font-size:12px!important;font-weight:800!important;color:#fff!important}
+        .ar-round-table td{height:58px!important}
+        .ar-round-table th{height:46px!important}
+        .ar-round-table input{width:66px!important;min-width:66px!important;height:38px!important;padding:7px 6px!important;font-size:15px!important}
+        .ar-round-table .grade-badge{margin-left:0!important}
+      }
+    `}</style>
     <PageHeader title="Pengisian AR" actions={<button className="btn btn-primary" onClick={save} disabled={saving || !rows.length}><CloudUpload size={16}/>{saving ? 'Menyimpan...' : 'Simpan'}</button>} />
 
     <GlassCard className="filter-card">
