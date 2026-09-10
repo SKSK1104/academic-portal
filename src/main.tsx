@@ -9,6 +9,7 @@ import './critique-fixes.css';
 import './clean-copy.css';
 import './hotfix.css';
 import './pbd-analysis-fix.css';
+import './parent-report.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
