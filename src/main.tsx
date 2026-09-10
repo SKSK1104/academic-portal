@@ -7,6 +7,7 @@ import './styles.css';
 import './pristine-import.css';
 import './critique-fixes.css';
 import './clean-copy.css';
+import './hotfix.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
