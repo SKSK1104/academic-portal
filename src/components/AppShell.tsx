@@ -1,7 +1,7 @@
 import { BarChart3, BookOpenCheck, BrainCircuit, FileUp, Home, LogOut, Search, ShieldCheck } from 'lucide-react';
 import { Link, NavLink, Outlet } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
-import { SCHOOL_CODE, SCHOOL_NAME } from '../lib/constants';
+import { SCHOOL_NAME } from '../lib/constants';
 import { SCHOOL_LOGO_DATA_URI } from '../lib/schoolLogo';
 
 const teacherLinks = [
@@ -16,7 +16,7 @@ const teacherLinks = [
 function Brand({ teacher = false }: { teacher?: boolean }) {
   return <div className="brand pristine-brand">
     <img className="school-crest" src={SCHOOL_LOGO_DATA_URI} alt="Lencana SK Simpang Kuda" />
-    <div className="brand-copy"><strong>{SCHOOL_NAME}</strong><small>{teacher ? 'Portal Guru 2.0' : `${SCHOOL_CODE} • Portal Akademik 2.0`}</small></div>
+    <div className="brand-copy"><strong>{SCHOOL_NAME}</strong><small>{teacher ? 'Sistem Pengurusan Akademik dan Pentaksiran · Akses Guru' : 'Sistem Pengurusan Akademik dan Pentaksiran'}</small></div>
   </div>;
 }
 
@@ -27,7 +27,7 @@ export function PublicShell() {
       <Link className="btn btn-ghost" to="/guru"><ShieldCheck size={16}/> Akses Guru</Link>
     </header>
     <main className="public-main"><Outlet /></main>
-    <footer className="footer">© {new Date().getFullYear()} {SCHOOL_NAME} • Sistem Akademik & Pentaksiran</footer>
+    <footer className="footer">© {new Date().getFullYear()} {SCHOOL_NAME} • Sistem Pengurusan Akademik dan Pentaksiran</footer>
   </div>;
 }
 
