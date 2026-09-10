@@ -12,6 +12,7 @@ import './pbd-analysis-fix.css';
 import './parent-report.css';
 import './route-audit-fixes.css';
 import './premium-mobile.css';
+import './contrast-audit.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
