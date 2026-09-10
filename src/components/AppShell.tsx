@@ -37,7 +37,7 @@ function Crest({ compact = false }: { compact?: boolean }) {
         borderRadius: 0,
         padding: 0,
         boxShadow: 'none',
-        filter: 'drop-shadow(0 7px 14px rgba(0,0,0,.28)) drop-shadow(0 0 9px rgba(255,208,66,.13))'
+        filter: 'none'
       }}
     />
   </span>;
