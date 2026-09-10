@@ -1,0 +1,63 @@
+/* Final route-wide contrast/readability audit. Visual only. */
+:root{--audit-text:#f7fbff;--audit-text-2:#d7e6f5;--audit-muted:#a9bfd3;--audit-line:rgba(105,199,255,.34);--audit-panel:linear-gradient(145deg,rgba(17,52,83,.92),rgba(6,18,36,.96) 58%,rgba(34,19,65,.90));}
+
+/* Never darken the real school crest against the UI. */
+.school-crest,.mobile-brand img,.topbar .school-crest,.sidebar .school-crest{mix-blend-mode:normal!important;filter:brightness(1.16) saturate(1.12) contrast(1.05)!important;opacity:1!important;background:linear-gradient(145deg,rgba(172,226,255,.24),rgba(88,152,219,.14),rgba(120,85,214,.14))!important;border:1px solid rgba(171,225,255,.42)!important;box-shadow:inset 0 1px rgba(255,255,255,.30),0 6px 18px rgba(0,0,0,.22),0 0 18px rgba(65,188,255,.10)!important;}
+
+/* Major surfaces: preserve dark premium look without crushing content. */
+.glass-card,.glass-hero,.portal-card,.module-card,.filter-card,.stat-card,.subject-card,.table-card,.premium-card,.premium-parent-card,.parent-kpi-card,.summary-panel,.target-panel,.intervention-card,.grade-modal{background:var(--audit-panel)!important;border-color:var(--audit-line)!important;}
+
+/* Route-wide text hierarchy. */
+.public-main h1,.public-main h2,.public-main h3,.teacher-main h1,.teacher-main h2,.teacher-main h3,.page-header h1,.hero h1,.lookup-copy h1,.card-toolbar h2,.subject-card-head h2,.summary-panel h2,.summary-panel h3,.target-panel h3,.stat-value,.target-number,.intervention-number{color:var(--audit-text)!important;opacity:1!important;text-shadow:none!important;}
+.public-main p,.teacher-main p,.page-header p,.hero p,.lookup-copy p,.card-toolbar p,.stat-hint,.target-meta,.intervention-meta,.muted-cell{color:var(--audit-muted)!important;opacity:1!important;}
+.eyebrow,.hero-badge,.stat-head,.filter-grid label,.assessment-import-controls label,.pupil-form-grid label,.year-inline{color:#9ee8ff!important;opacity:1!important;}
+
+/* Parent lookup: specifically fix the nearly-black copy shown on mobile. */
+.parent-search-card .lookup-copy h1,.parent-search-card h1,.parent-search-card h2,.parent-search-card h3{color:#ffffff!important;opacity:1!important;}
+.parent-search-card .lookup-copy p,.parent-search-card p{color:#c0d2e3!important;opacity:1!important;}
+.parent-search-card label,.parent-search-card .lookup-label{color:#dfefff!important;background:rgba(255,255,255,.06)!important;border-color:rgba(151,215,255,.22)!important;}
+.parent-search-card input{color:#ffffff!important;background:#081a31!important;border-color:rgba(111,193,246,.34)!important;}
+.parent-search-card input::placeholder{color:#8fa8bf!important;opacity:1!important;}
+
+/* PBD + academic analysis: prevent invisible KPI/title values. */
+.pbd-rumusan-card,.pbd-round-card,.pbd-membership-card,.pbd-distribution-card,.performance-summary-wide,.grade-progression-card{color:var(--audit-text)!important;}
+.pbd-rumusan-card *, .pbd-round-card *, .pbd-membership-card *, .pbd-distribution-card *{opacity:1;}
+.pbd-primary-grid .stat-card .stat-value,.stats-grid .stat-card .stat-value,.summary-row strong,.event-visibility-strip strong,.metric-pair strong{color:#ffffff!important;opacity:1!important;}
+.pbd-primary-grid .stat-card .stat-head,.stats-grid .stat-card .stat-head,.summary-row span,.event-visibility-strip span,.metric-pair span{color:#a9bfd3!important;opacity:1!important;}
+.intervention-title,.pbd-primary-grid .intervention-card h3{color:#ff9fba!important;}
+
+/* Icons should read clearly without neon overload. */
+.stat-card svg,.portal-card svg,.module-card svg,.filter-card svg,.premium-card svg{opacity:.95!important;filter:none!important;}
+
+/* Charts: readable axes/tooltips and no white hover flash. */
+.recharts-cartesian-axis-tick-value{fill:#b7c9da!important;opacity:1!important;}
+.recharts-cartesian-grid line{stroke:rgba(132,176,214,.18)!important;}
+.recharts-tooltip-wrapper .recharts-default-tooltip{background:#081a31!important;border:1px solid rgba(105,199,255,.38)!important;color:#fff!important;box-shadow:0 10px 26px rgba(0,0,0,.34)!important;}
+.recharts-default-tooltip .recharts-tooltip-label,.recharts-default-tooltip .recharts-tooltip-item{color:#f5fbff!important;}
+.recharts-rectangle.recharts-tooltip-cursor,.recharts-tooltip-cursor{fill:rgba(66,156,226,.08)!important;stroke:none!important;}
+.recharts-active-bar,.recharts-bar-rectangle:hover{filter:none!important;}
+.grade-bar-label,.pbd-bar-label{fill:#ffffff!important;}
+
+/* Tables/lists/modals: no low-contrast remnants. */
+.teacher-main table th,.public-main table th,.public-report table th,.data-table th,.intervention-table th,.grade-membership-table th,.pbd-membership-table th{color:#b8cce0!important;background:#08182d!important;}
+.teacher-main table td,.public-main table td,.public-report table td,.data-table td,.intervention-table td,.grade-membership-table td,.pbd-membership-table td{color:#f0f6ff!important;background:#071427!important;}
+.grade-modal,.grade-modal-list li{color:#f5f9ff!important;}
+.grade-modal-count{color:#c9d9e8!important;}
+
+/* Buttons and fields remain clearly interactive. */
+.btn,.icon-button,.status-chip{color:#f8fbff!important;border-color:rgba(126,203,255,.34)!important;}
+input,select,textarea{color:#f7fbff!important;caret-color:#7ee8ff!important;}
+input::placeholder,textarea::placeholder{color:#829bb4!important;opacity:1!important;}
+
+@media(max-width:780px){
+ body{background:linear-gradient(180deg,#061426 0%,#030a16 52%,#050915 100%)!important;}
+ .mobile-teacher-bar,.topbar{background:linear-gradient(90deg,#092744 0%,#10204b 58%,#25175a 100%)!important;border-bottom-color:rgba(93,190,255,.40)!important;}
+ .mobile-brand img,.topbar .school-crest{filter:brightness(1.22) saturate(1.14) contrast(1.06)!important;}
+ .mobile-brand span,.topbar .brand-copy strong{color:#fff!important;opacity:1!important;}
+ .teacher-main,.public-main{color:#f7fbff!important;}
+ .page-header h1,.hero h1,.lookup-copy h1{color:#fff!important;}
+ .parent-search-card,.filter-card,.stat-card,.summary-panel,.target-panel,.subject-card,.table-card,.premium-card{background:linear-gradient(145deg,#0d2945 0%,#07172d 60%,#211443 100%)!important;}
+ .stat-value,.target-number,.summary-row strong{color:#fff!important;}
+ .stat-head,.target-meta,.summary-row span{color:#afc4d8!important;}
+ .grade-modal-backdrop{background:rgba(0,5,15,.82)!important;}
+}
