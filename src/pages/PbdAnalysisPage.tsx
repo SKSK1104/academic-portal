@@ -11,7 +11,7 @@ import { supabase } from '../lib/supabase';
 import type { Assessment, Subject } from '../lib/types';
 
 type EnrolmentRow = { id: string; student_id: string; class_name: string; year_level: number };
-type StudentRow = { id: string; name: string; oku_status: string | null };
+type StudentRow = { id: string; name: string; oku_status: string | null; religion: string | null };
 type PbdRow = { assessment_id: string; enrolment_id: string; subject_id: string; tp: number };
 type OfferingRow = { subject_id: string; year_level: number; pbd_enabled: boolean };
 type Drilldown = { tp: string; names: string[] } | null;
@@ -66,7 +66,7 @@ export function PbdAnalysisPage() {
       const assessmentIds = assessments.map((a) => a.id);
 
       const [studentResult, currentResult, roundResult, offeringResult, subjectResult] = await Promise.all([
-        studentIds.length ? supabase.from('v2_students').select('id,name,oku_status').in('id', studentIds) : Promise.resolve({data:[],error:null}),
+        studentIds.length ? supabase.from('v2_students').select('id,name,oku_status,religion').in('id', studentIds) : Promise.resolve({data:[],error:null}),
         assessmentId && enrolmentIds.length ? supabase.from('v2_pbd_records').select('assessment_id,enrolment_id,subject_id,tp').eq('assessment_id', assessmentId).in('enrolment_id', enrolmentIds) : Promise.resolve({data:[],error:null}),
         enrolmentIds.length && assessmentIds.length ? supabase.from('v2_pbd_records').select('assessment_id,enrolment_id,subject_id,tp').in('assessment_id', assessmentIds).in('enrolment_id', enrolmentIds) : Promise.resolve({data:[],error:null}),
         supabase.from('v2_subject_offerings').select('subject_id,year_level,pbd_enabled'),
@@ -95,8 +95,9 @@ export function PbdAnalysisPage() {
   const availableSubjects = useMemo(() => {
     const scopeYears = new Set(enrolments.map((e) => Number(e.year_level)));
     const enabled = new Set(offerings.filter((o) => o.pbd_enabled && (scopeYears.size === 0 || scopeYears.has(Number(o.year_level)))).map((o) => o.subject_id));
-    return subjects.filter((s) => enabled.has(s.id)).sort((a,b) => a.name_ms.localeCompare(b.name_ms));
-  }, [subjects, offerings, enrolments]);
+    const withData = new Set(roundRows.map((r) => r.subject_id));
+    return subjects.filter((s) => enabled.has(s.id) && withData.has(s.id)).sort((a,b) => a.name_ms.localeCompare(b.name_ms));
+  }, [subjects, offerings, enrolments, roundRows]);
 
   useEffect(() => {
     if (!availableSubjects.length) { setSubjectCode(''); return; }
@@ -110,8 +111,14 @@ export function PbdAnalysisPage() {
   const candidateEnrolments = useMemo(() => {
     if (!subject) return [];
     const enabledYears = new Set(offerings.filter((o) => o.subject_id === subject.id && o.pbd_enabled).map((o) => Number(o.year_level)));
-    return enrolments.filter((e) => enabledYears.has(Number(e.year_level)));
-  }, [subject, offerings, enrolments]);
+    return enrolments.filter((e) => {
+      if (!enabledYears.has(Number(e.year_level))) return false;
+      const religion = String(studentById.get(e.student_id)?.religion || '').trim().toUpperCase();
+      if (subject.code === 'PI') return religion.includes('ISLAM');
+      if (subject.code === 'PM') return religion.length > 0 && !religion.includes('ISLAM');
+      return true;
+    });
+  }, [subject, offerings, enrolments, studentById]);
   const candidateCount = candidateEnrolments.length;
   const recordedIds = useMemo(() => new Set(currentRows.map((r) => r.enrolment_id)), [currentRows]);
   const recordedCount = recordedIds.size;
