@@ -84,21 +84,38 @@ function typeOf(text:string,hint:'AUTO'|'UASA'|'PBD'):ParsedPdfDocument['doc_typ
 
 function headerY(p:Page){ return p.words.find(w=>/MYKID|PENGENALAN/i.test(w.text))?.cy||p.words.find(w=>/^NAMA$/i.test(w.text))?.cy||p.height*.28; }
 function centers(p:Page,y:number){
-  const near=p.words.filter(w=>Math.abs(w.cy-y)<p.height*.035); const out:Record<string,number>={};
-  for(const c of SUBJECTS){const w=near.find(x=>up(x.text).replace(/[^A-Z]/g,'')===c);if(w)out[c]=w.cx;}
-  const left=p.width*.53,right=p.width*.91,step=(right-left)/SUBJECTS.length; SUBJECTS.forEach((c,i)=>{if(!out[c])out[c]=left+step*(i+.5)}); return out;
+  const near=p.words.filter(w=>Math.abs(w.cy-y)<p.height*.035);
+  const out:Record<string,number>={};
+  for(const c of SUBJECTS){
+    const w=near.find(x=>up(x.text).replace(/[^A-Z]/g,'')===c);
+    if(w) out[c]=w.cx;
+  }
+  return out;
 }
 
 function individual(pages:Page[],kind:'UASA_INDIVIDUAL'|'PBD_INDIVIDUAL'){
   const rows:NonNullable<ParsedPdfDocument['rows']>=[]; const warnings:string[]=[];
-  for(const p of pages){const hy=headerY(p),cs=centers(p,hy);const ids=p.words.filter(w=>/^\d{11,13}$/.test(w.text.replace(/\D/g,''))&&w.cy>hy).sort((a,b)=>a.cy-b.cy);if(!ids.length)continue;
+  for(const p of pages){
+    const hy=headerY(p),cs=centers(p,hy),detectedSubjects=Object.keys(cs);
+    if(!detectedSubjects.length){warnings.push('Tajuk mata pelajaran tidak dapat dibaca pada satu halaman; halaman itu tidak diandaikan.');continue;}
+    const ids=p.words.filter(w=>/^\d{11,13}$/.test(w.text.replace(/\D/g,''))&&w.cy>hy).sort((a,b)=>a.cy-b.cy);if(!ids.length)continue;
     const gaps=ids.slice(1).map((w,i)=>w.cy-ids[i].cy).sort((a,b)=>a-b);const half=Math.max(16,(gaps[Math.floor(gaps.length/2)]||p.height*.05)*.42);
-    for(const a of ids){const band=p.words.filter(w=>Math.abs(w.cy-a.cy)<=half);const name=clean(band.filter(w=>w.x0>p.width*.11&&w.cx<p.width*.33).sort((x,y)=>x.y0-y.y0||x.x0-y.x0).map(w=>w.text).join(' '));
-      const gender=band.find(w=>w.cx>p.width*.48&&w.cx<p.width*.54&&/^[LP]$/i.test(w.text))?.text?.toUpperCase()||null;const values:Record<string,string|number|null>={};
-      for(const c of SUBJECTS){const x=cs[c];const token=band.filter(w=>Math.abs(w.cx-x)<p.width*.018).sort((m,n)=>Math.abs(m.cx-x)-Math.abs(n.cx-x))[0]?.text?.toUpperCase().replace(/[^A-Z0-9]/g,'')||'';if(kind==='UASA_INDIVIDUAL')values[c]=/^[A-F]$/.test(token)?token:null;else{const m=token.match(/TP?([1-6])/);values[c]=m?`TP${m[1]}`:null;}}
-      if(!name)warnings.push('Nama tidak jelas untuk satu rekod.');rows.push({student_name:name||'REKOD TANPA NAMA',mykid:a.text.replace(/\D/g,''),gender,values});
+    for(const a of ids){
+      const band=p.words.filter(w=>Math.abs(w.cy-a.cy)<=half);
+      const name=clean(band.filter(w=>w.x0>p.width*.11&&w.cx<p.width*.33).sort((x,y)=>x.y0-y.y0||x.x0-y.x0).map(w=>w.text).join(' '));
+      const gender=band.find(w=>w.cx>p.width*.48&&w.cx<p.width*.54&&/^[LP]$/i.test(w.text))?.text?.toUpperCase()||null;
+      const values:Record<string,string|number|null>={};
+      for(const c of detectedSubjects){
+        const x=cs[c];
+        const token=band.filter(w=>Math.abs(w.cx-x)<p.width*.018).sort((m,n)=>Math.abs(m.cx-x)-Math.abs(n.cx-x))[0]?.text?.toUpperCase().replace(/[^A-Z0-9]/g,'')||'';
+        if(kind==='UASA_INDIVIDUAL') values[c]=/^[A-F]$/.test(token)?token:null;
+        else {const m=token.match(/TP?([1-6])/);values[c]=m?`TP${m[1]}`:null;}
+      }
+      if(!name)warnings.push('Nama tidak jelas untuk satu rekod.');
+      rows.push({student_name:name||'REKOD TANPA NAMA',mykid:a.text.replace(/\D/g,''),gender,values});
     }
-  } return{rows,warnings};
+  }
+  return{rows,warnings};
 }
 
 function summary(pages:Page[]){
