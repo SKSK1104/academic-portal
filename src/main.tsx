@@ -13,6 +13,7 @@ import './parent-report.css';
 import './liquid-glass.css';
 import './liquid-metal.css';
 import './mockup-fidelity.css';
+import './route-audit-fixes.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
