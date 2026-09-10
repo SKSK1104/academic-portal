@@ -5,15 +5,10 @@ import App from './App';
 import { AuthProvider } from './contexts/AuthContext';
 import './styles.css';
 import './pristine-import.css';
-import './critique-fixes.css';
 import './clean-copy.css';
-import './hotfix.css';
 import './pbd-analysis-fix.css';
 import './parent-report.css';
-import './route-audit-fixes.css';
-import './premium-mobile.css';
-import './contrast-audit.css';
-import './final-visual-audit.css';
+import './premium-system.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
