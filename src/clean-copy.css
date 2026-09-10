@@ -4,3 +4,52 @@
 .card-toolbar p {
   display: none !important;
 }
+
+/* Crest presentation: preserve the premium transparent artwork itself. */
+body .topbar .pristine-brand,
+body .sidebar .pristine-brand,
+body .mobile-teacher-bar .mobile-brand {
+  align-items: center !important;
+}
+
+body .topbar .pristine-brand .school-crest,
+body .sidebar .pristine-brand .school-crest,
+body .mobile-teacher-bar .mobile-brand img {
+  box-sizing: border-box !important;
+  object-fit: contain !important;
+  object-position: center !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  opacity: 1 !important;
+  mix-blend-mode: normal !important;
+  filter: drop-shadow(0 7px 12px rgba(0,0,0,.28)) drop-shadow(0 0 10px rgba(76,214,255,.13)) !important;
+  box-shadow: none !important;
+}
+
+body .topbar .pristine-brand .school-crest {
+  width: 58px !important;
+  height: 58px !important;
+}
+
+body .sidebar .pristine-brand .school-crest {
+  width: 78px !important;
+  height: 78px !important;
+}
+
+body .mobile-teacher-bar .mobile-brand img {
+  width: 48px !important;
+  height: 48px !important;
+}
+
+@media (max-width: 780px) {
+  body .topbar .pristine-brand .school-crest {
+    width: 48px !important;
+    height: 48px !important;
+  }
+  body .mobile-teacher-bar .mobile-brand img {
+    width: 46px !important;
+    height: 46px !important;
+  }
+}
