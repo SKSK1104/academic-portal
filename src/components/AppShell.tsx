@@ -13,9 +13,39 @@ const teacherLinks = [
   { to: '/guru/kecerdasan', label: 'Kecerdasan Pelbagai', icon: BrainCircuit }
 ];
 
+function Crest({ compact = false }: { compact?: boolean }) {
+  const size = compact ? 58 : 72;
+  return <span aria-hidden="true" style={{
+    width: size,
+    height: size,
+    flex: '0 0 auto',
+    display: 'grid',
+    placeItems: 'center',
+    position: 'relative',
+    overflow: 'visible'
+  }}>
+    <img
+      src={SCHOOL_LOGO_DATA_URI}
+      alt=""
+      style={{
+        width: '100%',
+        height: '100%',
+        display: 'block',
+        objectFit: 'contain',
+        background: 'transparent',
+        border: 0,
+        borderRadius: 0,
+        padding: 0,
+        boxShadow: 'none',
+        filter: 'drop-shadow(0 7px 14px rgba(0,0,0,.28)) drop-shadow(0 0 9px rgba(255,208,66,.13))'
+      }}
+    />
+  </span>;
+}
+
 function Brand({ teacher = false }: { teacher?: boolean }) {
   return <div className="brand pristine-brand">
-    <img className="school-crest" src={SCHOOL_LOGO_DATA_URI} alt="Lencana SK Simpang Kuda" />
+    <Crest />
     <div className="brand-copy"><strong>{SCHOOL_NAME}</strong><small>{teacher ? 'Sistem Pengurusan Akademik dan Pentaksiran · Akses Guru' : 'Sistem Pengurusan Akademik dan Pentaksiran'}</small></div>
   </div>;
 }
@@ -46,7 +76,7 @@ export function TeacherShell() {
     </aside>
     <div className="teacher-content">
       <header className="mobile-teacher-bar">
-        <div className="mobile-brand"><img src={SCHOOL_LOGO_DATA_URI} alt=""/><span>{SCHOOL_NAME}</span></div>
+        <div style={{display:'flex',alignItems:'center',gap:12,minWidth:0}}><Crest compact/><span style={{fontWeight:800,color:'#fff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{SCHOOL_NAME}</span></div>
         <button className="icon-button" onClick={() => signOut()}><LogOut size={17}/></button>
       </header>
       <main className="teacher-main"><Outlet /></main>
