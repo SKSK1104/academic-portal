@@ -1,5 +1,5 @@
 import { CloudUpload, Save, Users } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { GlassCard } from '../components/GlassCard';
 import { PageHeader } from '../components/PageHeader';
 import { getAssessments, getAvailableYears, getClasses, getSubjectsForYear } from '../lib/data';
@@ -199,9 +199,18 @@ export function MarkEntryPage() {
   </>;
 }
 
+const gradeStyles: Record<string, CSSProperties> = {
+  A: { color:'#9fffdc', background:'linear-gradient(145deg,rgba(35,211,157,.42),rgba(14,102,87,.48))', border:'1px solid rgba(120,255,214,.62)', boxShadow:'inset 0 1px 0 rgba(255,255,255,.30),0 0 18px rgba(47,226,171,.34)' },
+  B: { color:'#bdf5ff', background:'linear-gradient(145deg,rgba(38,193,236,.42),rgba(27,107,172,.48))', border:'1px solid rgba(132,232,255,.62)', boxShadow:'inset 0 1px 0 rgba(255,255,255,.30),0 0 18px rgba(53,195,245,.32)' },
+  C: { color:'#c8d9ff', background:'linear-gradient(145deg,rgba(73,124,255,.44),rgba(57,75,172,.48))', border:'1px solid rgba(151,182,255,.64)', boxShadow:'inset 0 1px 0 rgba(255,255,255,.30),0 0 18px rgba(90,131,255,.32)' },
+  D: { color:'#e4d2ff', background:'linear-gradient(145deg,rgba(145,91,255,.44),rgba(88,58,165,.50))', border:'1px solid rgba(195,157,255,.64)', boxShadow:'inset 0 1px 0 rgba(255,255,255,.30),0 0 18px rgba(157,104,255,.32)' },
+  E: { color:'#ffe0ae', background:'linear-gradient(145deg,rgba(255,158,67,.44),rgba(160,88,35,.50))', border:'1px solid rgba(255,198,129,.64)', boxShadow:'inset 0 1px 0 rgba(255,255,255,.30),0 0 18px rgba(255,157,67,.31)' },
+  F: { color:'#ffc0d0', background:'linear-gradient(145deg,rgba(255,91,132,.46),rgba(158,45,83,.52))', border:'1px solid rgba(255,151,178,.66)', boxShadow:'inset 0 1px 0 rgba(255,255,255,.30),0 0 18px rgba(255,91,132,.34)' },
+  TH: { color:'#d5e0eb', background:'linear-gradient(145deg,rgba(105,126,151,.38),rgba(51,67,88,.50))', border:'1px solid rgba(172,191,211,.50)', boxShadow:'inset 0 1px 0 rgba(255,255,255,.22)' }
+};
+
 function gradeBadge(value: string) {
-  if (value === '') return <span className="grade-badge grade-TH">—</span>;
-  const grade = gradeFromScore(Number(value));
-  return <span className={`grade-badge grade-${grade}`}>{grade}</span>;
+  const grade = value === '' ? 'TH' : gradeFromScore(Number(value));
+  return <span className={`grade-badge grade-${grade}`} style={{...gradeStyles[grade],minWidth:46,width:46,height:38,borderRadius:13,display:'inline-flex',alignItems:'center',justifyContent:'center',fontWeight:900,fontSize:17,marginLeft:0,WebkitTextFillColor:'currentColor'}}>{value === '' ? '—' : grade}</span>;
 }
 function formatClass(value: string) { return value ? value.charAt(0) + value.slice(1).toLowerCase() : ''; }
