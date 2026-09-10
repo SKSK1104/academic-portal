@@ -1,6 +1,6 @@
 import { ArrowUpRight, BookOpenCheck, Search, ShieldCheck, Sparkles } from 'lucide-react';
 import { FormEvent, useMemo, useState } from 'react';
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { GlassCard } from '../components/GlassCard';
 import { PageHeader } from '../components/PageHeader';
 import { supabase } from '../lib/supabase';
@@ -18,8 +18,6 @@ interface ParentReport {
   academic:AcademicRow[];
   pbd:PbdRow[];
 }
-
-const gradeOrder = ['A','B','C','D','E','F','TH'];
 
 export function ParentSearchPage(){
   const [mykid,setMykid]=useState('');
@@ -48,7 +46,7 @@ export function ParentSearchPage(){
   const academicTrend=useMemo(()=>academicAssessments.map(a=>{
     const rows=report?.academic.filter(r=>r.assessment===a.code&&r.score!==null)||[];
     const avg=rows.length?rows.reduce((s,r)=>s+Number(r.score||0),0)/rows.length:null;
-    return {assessment:a.code,average:avg===null?null:Number(avg.toFixed(1))};
+    return {assessment:a.code,average:avg===null?0:Number(avg.toFixed(1)),hasData:avg!==null};
   }),[academicAssessments,report]);
 
   const academicSubjects=useMemo(()=>{
@@ -76,9 +74,8 @@ export function ParentSearchPage(){
 
   const latestAcademic=academicAssessments[academicAssessments.length-1]?.code||'';
   const latestRows=report?.academic.filter(r=>r.assessment===latestAcademic)||[];
-  const averageLatest=latestRows.filter(r=>r.score!==null).length
-    ? latestRows.filter(r=>r.score!==null).reduce((s,r)=>s+Number(r.score||0),0)/latestRows.filter(r=>r.score!==null).length
-    : null;
+  const scoredLatest=latestRows.filter(r=>r.score!==null);
+  const averageLatest=scoredLatest.length?scoredLatest.reduce((s,r)=>s+Number(r.score||0),0)/scoredLatest.length:null;
   const mtmSubjects=latestRows.filter(r=>r.grade&&['A','B','C','D','E'].includes(r.grade)).length;
   const latestPbdRows=report?.pbd.filter(r=>r.assessment===latestPbd)||[];
   const pbdMtm=latestPbdRows.filter(r=>r.tp>=3).length;
@@ -120,29 +117,28 @@ export function ParentSearchPage(){
       <section className="parent-dashboard-grid">
         <GlassCard className="parent-chart-card parent-chart-wide premium-parent-card">
           <div className="parent-section-head"><div><span>AKADEMIK</span><h2>Perkembangan Prestasi</h2></div><ArrowUpRight size={22}/></div>
-          <div className="parent-chart-frame">
-            <ResponsiveContainer width="100%" height="100%"><AreaChart data={academicTrend} margin={{top:20,right:20,left:-12,bottom:0}}>
-              <defs><linearGradient id="parentArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="currentColor" stopOpacity={0.22}/><stop offset="100%" stopColor="currentColor" stopOpacity={0.01}/></linearGradient></defs>
-              <CartesianGrid vertical={false} strokeDasharray="3 7"/><XAxis dataKey="assessment" tickLine={false} axisLine={false}/><YAxis domain={[0,100]} tickLine={false} axisLine={false}/><Tooltip formatter={(v:any)=>[`${v} / 100`,'Purata']}/><Area type="monotone" dataKey="average" stroke="currentColor" strokeWidth={3} fill="url(#parentArea)" connectNulls dot={{r:5}} activeDot={{r:7}}/></AreaChart></ResponsiveContainer>
+          <div className="parent-chart-frame parent-academic-chart">
+            <ResponsiveContainer width="100%" height="100%"><BarChart data={academicTrend} margin={{top:34,right:18,left:-4,bottom:0}} barCategoryGap="36%">
+              <CartesianGrid vertical={false} strokeDasharray="3 7"/><XAxis dataKey="assessment" tickLine={false} axisLine={false}/><YAxis domain={[0,100]} tickLine={false} axisLine={false}/><Tooltip formatter={(v:any)=>[`${v} / 100`,'Purata markah']}/><Bar dataKey="average" fill="currentColor" radius={[9,9,2,2]} maxBarSize={88}><LabelList dataKey="average" position="top" formatter={(v:any)=>Number(v)>0?Number(v).toFixed(1):''} /></Bar></BarChart></ResponsiveContainer>
           </div>
         </GlassCard>
 
         <GlassCard className="parent-chart-card premium-parent-card">
           <div className="parent-section-head"><div><span>PBD · {latestPbd||'—'}</span><h2>Taburan Tahap Penguasaan</h2></div><BookOpenCheck size={21}/></div>
           <div className="parent-chart-frame compact">
-            <ResponsiveContainer width="100%" height="100%"><BarChart data={tpDistribution} margin={{top:18,right:6,left:-24,bottom:0}}><CartesianGrid vertical={false} strokeDasharray="3 7"/><XAxis dataKey="tp" tickLine={false} axisLine={false}/><YAxis allowDecimals={false} tickLine={false} axisLine={false}/><Tooltip formatter={(v:any)=>[v,'Rekod subjek']}/><Bar dataKey="count" fill="currentColor" radius={[8,8,2,2]}/></BarChart></ResponsiveContainer>
+            <ResponsiveContainer width="100%" height="100%"><BarChart data={tpDistribution} margin={{top:32,right:8,left:-14,bottom:0}} barCategoryGap="24%"><CartesianGrid vertical={false} strokeDasharray="3 7"/><XAxis dataKey="tp" tickLine={false} axisLine={false}/><YAxis allowDecimals={false} tickLine={false} axisLine={false}/><Tooltip formatter={(v:any)=>[v,'Mata pelajaran']}/><Bar dataKey="count" fill="currentColor" radius={[8,8,2,2]} maxBarSize={54}><LabelList dataKey="count" position="top" formatter={(v:any)=>Number(v)>0?String(v):''}/></Bar></BarChart></ResponsiveContainer>
           </div>
         </GlassCard>
       </section>
 
       <GlassCard className="parent-detail-card premium-parent-card">
         <div className="parent-section-head"><div><span>REKOD TERPERINCI</span><h2>Prestasi Akademik Mengikut Mata Pelajaran</h2></div></div>
-        <div className="table-scroll"><table className="data-table parent-premium-table"><thead><tr><th>Mata Pelajaran</th>{academicAssessments.map(a=><th key={a.code}>{a.code}</th>)}</tr></thead><tbody>{academicSubjects.map(s=><tr key={s.code}><td><strong>{s.name}</strong></td>{academicAssessments.map(a=>{const r=report.academic.find(x=>(x.subject_code||x.subject)===s.code&&x.assessment===a.code);return <td key={a.code}>{r?<div className="parent-result-cell"><strong>{r.score??'—'}</strong><span className={`grade grade-${String(r.grade||'').toLowerCase()}`}>{r.grade||'—'}</span></div>:'—'}</td>})}</tr>)}</tbody></table></div>
+        <div className="table-scroll parent-table-scroll"><table className="data-table parent-premium-table"><thead><tr><th>Mata Pelajaran</th>{academicAssessments.map(a=><th key={a.code}>{a.code}</th>)}</tr></thead><tbody>{academicSubjects.map(s=><tr key={s.code}><td><strong>{s.name}</strong></td>{academicAssessments.map(a=>{const r=report.academic.find(x=>(x.subject_code||x.subject)===s.code&&x.assessment===a.code);return <td key={a.code}>{r?<div className="parent-result-cell"><strong>{r.score??'—'}</strong><span className={`grade grade-${String(r.grade||'').toLowerCase()}`}>{r.grade||'—'}</span></div>:'—'}</td>})}</tr>)}</tbody></table></div>
       </GlassCard>
 
       <GlassCard className="parent-detail-card premium-parent-card">
         <div className="parent-section-head"><div><span>PBD</span><h2>Tahap Penguasaan Mengikut Mata Pelajaran</h2></div></div>
-        <div className="table-scroll"><table className="data-table parent-premium-table"><thead><tr><th>Mata Pelajaran</th>{pbdAssessments.map(a=><th key={a.code}>{a.code}</th>)}</tr></thead><tbody>{pbdSubjects.map(s=><tr key={s.code}><td><strong>{s.name}</strong></td>{pbdAssessments.map(a=>{const r=report.pbd.find(x=>(x.subject_code||x.subject)===s.code&&x.assessment===a.code);return <td key={a.code}>{r?<span className={`tp-orb tp-${r.tp}`}>TP{r.tp}</span>:'—'}</td>})}</tr>)}</tbody></table></div>
+        <div className="table-scroll parent-table-scroll"><table className="data-table parent-premium-table"><thead><tr><th>Mata Pelajaran</th>{pbdAssessments.map(a=><th key={a.code}>{a.code}</th>)}</tr></thead><tbody>{pbdSubjects.map(s=><tr key={s.code}><td><strong>{s.name}</strong></td>{pbdAssessments.map(a=>{const r=report.pbd.find(x=>(x.subject_code||x.subject)===s.code&&x.assessment===a.code);return <td key={a.code}>{r?<span className={`tp-orb tp-${r.tp}`}>TP{r.tp}</span>:'—'}</td>})}</tr>)}</tbody></table></div>
       </GlassCard>
     </div>}
   </div>
