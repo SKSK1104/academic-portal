@@ -10,12 +10,8 @@ import './clean-copy.css';
 import './hotfix.css';
 import './pbd-analysis-fix.css';
 import './parent-report.css';
-import './liquid-glass.css';
-import './liquid-metal.css';
-import './mockup-fidelity.css';
 import './route-audit-fixes.css';
-import './crest-fix.css';
-import './mockup-exact.css';
+import './premium-mobile.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
