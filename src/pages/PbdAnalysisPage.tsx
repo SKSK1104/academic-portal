@@ -1,6 +1,6 @@
 import { Accessibility, AlertTriangle, Printer, Target, Users, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { Bar, BarChart, CartesianGrid, LabelList, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, Cell, LabelList, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { GlassCard } from '../components/GlassCard';
 import { PageHeader } from '../components/PageHeader';
 import { StatCard } from '../components/StatCard';
@@ -15,6 +15,34 @@ type StudentRow = { id: string; name: string; oku_status: string | null; religio
 type PbdRow = { assessment_id: string; enrolment_id: string; subject_id: string; tp: number };
 type OfferingRow = { subject_id: string; year_level: number; pbd_enabled: boolean };
 type Drilldown = { tp: string; names: string[] } | null;
+
+const TP_COLORS = ['#ff4d7d', '#ff9f43', '#ffd166', '#48e5a7', '#35c8ff', '#9b7cff'];
+
+async function fetchPbdRowsPaged(assessmentIds: string[], enrolmentIds: string[]): Promise<PbdRow[]> {
+  if (!assessmentIds.length || !enrolmentIds.length) return [];
+  const all: PbdRow[] = [];
+  const pageSize = 500;
+  let from = 0;
+
+  while (true) {
+    const { data, error } = await supabase
+      .from('v2_pbd_records')
+      .select('assessment_id,enrolment_id,subject_id,tp')
+      .in('assessment_id', assessmentIds)
+      .in('enrolment_id', enrolmentIds)
+      .order('assessment_id', { ascending: true })
+      .order('enrolment_id', { ascending: true })
+      .order('subject_id', { ascending: true })
+      .range(from, from + pageSize - 1);
+    if (error) throw error;
+    const batch = (data || []) as PbdRow[];
+    all.push(...batch);
+    if (batch.length < pageSize) break;
+    from += pageSize;
+  }
+
+  return all;
+}
 
 export function PbdAnalysisPage() {
   const [years, setYears] = useState<number[]>([]);
@@ -65,22 +93,20 @@ export function PbdAnalysisPage() {
       const studentIds = [...new Set(scope.map((e) => e.student_id))];
       const assessmentIds = assessments.map((a) => a.id);
 
-      const [studentResult, currentResult, roundResult, offeringResult, subjectResult] = await Promise.all([
+      const [studentResult, currentRowsAll, roundRowsAll, offeringResult, subjectResult] = await Promise.all([
         studentIds.length ? supabase.from('v2_students').select('id,name,oku_status,religion').in('id', studentIds) : Promise.resolve({data:[],error:null}),
-        assessmentId && enrolmentIds.length ? supabase.from('v2_pbd_records').select('assessment_id,enrolment_id,subject_id,tp').eq('assessment_id', assessmentId).in('enrolment_id', enrolmentIds) : Promise.resolve({data:[],error:null}),
-        enrolmentIds.length && assessmentIds.length ? supabase.from('v2_pbd_records').select('assessment_id,enrolment_id,subject_id,tp').in('assessment_id', assessmentIds).in('enrolment_id', enrolmentIds) : Promise.resolve({data:[],error:null}),
+        assessmentId ? fetchPbdRowsPaged([assessmentId], enrolmentIds) : Promise.resolve([] as PbdRow[]),
+        fetchPbdRowsPaged(assessmentIds, enrolmentIds),
         supabase.from('v2_subject_offerings').select('subject_id,year_level,pbd_enabled'),
         supabase.from('v2_subjects').select('id,code,name_ms,name_en')
       ]);
       if (studentResult.error) throw studentResult.error;
-      if (currentResult.error) throw currentResult.error;
-      if (roundResult.error) throw roundResult.error;
       if (offeringResult.error) throw offeringResult.error;
       if (subjectResult.error) throw subjectResult.error;
 
       setStudents((studentResult.data || []) as StudentRow[]);
-      setRows((currentResult.data || []) as PbdRow[]);
-      setRoundRows((roundResult.data || []) as PbdRow[]);
+      setRows(currentRowsAll as PbdRow[]);
+      setRoundRows(roundRowsAll as PbdRow[]);
       setOfferings((offeringResult.data || []) as OfferingRow[]);
       setSubjects((subjectResult.data || []) as Subject[]);
     } catch (e:any) {
@@ -173,7 +199,7 @@ export function PbdAnalysisPage() {
         <div className="pbd-stack">
           <GlassCard className="chart-card premium-card pbd-distribution-card">
             <div className="card-toolbar"><div><h2>Taburan Tahap Penguasaan</h2><p>{assessment?.code} · {subject?.name_ms || ''}</p></div><span className="status-chip">Klik bar untuk nama murid</span></div>
-            <div className="pbd-chart-height">{loading ? <div className="empty-inline">Memuatkan analisis…</div> : <ResponsiveContainer width="100%" height="100%"><BarChart data={tpChartData} margin={{top:48,right:24,bottom:14,left:8}} barCategoryGap="28%"><CartesianGrid vertical={false}/><XAxis dataKey="tp" tickLine={false} axisLine={{stroke:'#aaa89d'}} tick={{fontSize:17,fontWeight:900}}/><YAxis allowDecimals={false} tickLine={false} axisLine={false} tick={{fontSize:14}}/><Tooltip formatter={(v) => [`${v} murid`, 'Bilangan']} contentStyle={{background:'#071226',border:'1px solid rgba(89,184,255,.3)',borderRadius:12,fontSize:14,color:'#fff'}}/><Bar dataKey="count" fill="#2c8cff" radius={[6,6,0,0]} cursor="pointer" onClick={(data:any) => { const tp=String(data?.payload?.tp || data?.tp || ''); const found=tpMembership.find((x)=>x.tp===tp); if(found) setDrilldown({tp,names:found.names}); }}><LabelList dataKey="count" position="top" className="pbd-bar-label"/></Bar></BarChart></ResponsiveContainer>}</div>
+            <div className="pbd-chart-height">{loading ? <div className="empty-inline">Memuatkan analisis…</div> : <ResponsiveContainer width="100%" height="100%"><BarChart data={tpChartData} margin={{top:48,right:24,bottom:14,left:8}} barCategoryGap="28%"><CartesianGrid vertical={false}/><XAxis dataKey="tp" tickLine={false} axisLine={{stroke:'#6f86a2'}} tick={{fontSize:17,fontWeight:900}}/><YAxis allowDecimals={false} tickLine={false} axisLine={false} tick={{fontSize:14}}/><Tooltip cursor={false} formatter={(v) => [`${v} murid`, 'Bilangan']} contentStyle={{background:'rgba(5,14,31,.96)',border:'1px solid rgba(89,184,255,.34)',borderRadius:14,fontSize:14,color:'#fff',boxShadow:'0 18px 48px rgba(0,0,0,.42)'}}/><Bar dataKey="count" radius={[8,8,0,0]} cursor="pointer" activeBar={false} onClick={(data:any) => { const tp=String(data?.payload?.tp || data?.tp || ''); const found=tpMembership.find((x)=>x.tp===tp); if(found) setDrilldown({tp,names:found.names}); }}>{tpChartData.map((entry, index)=><Cell key={entry.tp} fill={TP_COLORS[index % TP_COLORS.length]}/>) }<LabelList dataKey="count" position="top" className="pbd-bar-label"/></Bar></BarChart></ResponsiveContainer>}</div>
           </GlassCard>
 
           <GlassCard className="summary-panel intervention-card premium-card"><div className="intervention-body"><h3>Senarai Murid Memerlukan Intervensi ({interventionRows.length})</h3>{interventionRows.length ? <table className="intervention-table"><thead><tr><th>Bil</th><th>Nama Murid</th><th>TP</th></tr></thead><tbody>{interventionRows.map((r,i)=><tr key={r.id}><td>{i+1}</td><td>{r.name}</td><td className="score">TP{r.tp}</td></tr>)}</tbody></table> : <div className="empty-inline">Tiada murid dalam kategori intervensi.</div>}</div></GlassCard>
@@ -182,7 +208,7 @@ export function PbdAnalysisPage() {
         <GlassCard className="target-panel premium-card pbd-rumusan-card"><div><h3>Rumusan PBD</h3><div className="target-number">{summary.mtm}<small> MTM</small></div></div><div className="target-meta"><div>Calon: <strong>{candidateCount}</strong></div><div style={{marginTop:8}}>TP1–TP6: <strong>{candidateCount}</strong></div><div style={{marginTop:8}}>TP3–TP6: <strong>{mtmPct.toFixed(1)}%</strong></div><div style={{marginTop:8}}>TP1–TP2: <strong style={{color:'var(--red)'}}>{interventionPct.toFixed(1)}%</strong></div></div></GlassCard>
       </div>
 
-      {assessments.length > 1 && <GlassCard className="summary-panel premium-card pbd-round-card"><div className="card-toolbar"><div><h2>Perbandingan Pusingan PBD</h2><p>Bilangan murid</p></div><span className="status-chip">{classDisplay}</span></div><div className="pbd-round-chart"><ResponsiveContainer width="100%" height="100%"><BarChart data={roundTrend} margin={{top:42,right:24,bottom:10,left:8}} barGap={10}><CartesianGrid vertical={false}/><XAxis dataKey="code" tickLine={false} axisLine={{stroke:'#6f86a2'}} tick={{fontSize:16,fontWeight:800}}/><YAxis allowDecimals={false} tickLine={false} axisLine={false}/><Tooltip contentStyle={{background:'#071226',border:'1px solid rgba(89,184,255,.3)',borderRadius:12,fontSize:14,color:'#fff'}}/><Legend wrapperStyle={{fontSize:14,fontWeight:800}}/><Bar dataKey="mtm" name="MTM" fill="#2ae6b5" radius={[6,6,0,0]}><LabelList dataKey="mtm" position="top" className="pbd-bar-label"/></Bar><Bar dataKey="intervention" name="Intervensi" fill="#ff6d8a" radius={[6,6,0,0]}><LabelList dataKey="intervention" position="top" className="pbd-bar-label"/></Bar></BarChart></ResponsiveContainer></div></GlassCard>}
+      {assessments.length > 1 && <GlassCard className="summary-panel premium-card pbd-round-card"><div className="card-toolbar"><div><h2>Perbandingan Pusingan PBD</h2><p>Bilangan murid</p></div><span className="status-chip">{classDisplay}</span></div><div className="pbd-round-chart"><ResponsiveContainer width="100%" height="100%"><BarChart data={roundTrend} margin={{top:42,right:24,bottom:10,left:8}} barGap={10}><CartesianGrid vertical={false}/><XAxis dataKey="code" tickLine={false} axisLine={{stroke:'#6f86a2'}} tick={{fontSize:16,fontWeight:800}}/><YAxis allowDecimals={false} tickLine={false} axisLine={false}/><Tooltip cursor={false} contentStyle={{background:'rgba(5,14,31,.96)',border:'1px solid rgba(89,184,255,.34)',borderRadius:14,fontSize:14,color:'#fff',boxShadow:'0 18px 48px rgba(0,0,0,.42)'}}/><Legend wrapperStyle={{fontSize:14,fontWeight:800}}/><Bar dataKey="mtm" name="MTM" fill="#2ae6b5" radius={[6,6,0,0]} activeBar={false}><LabelList dataKey="mtm" position="top" className="pbd-bar-label"/></Bar><Bar dataKey="intervention" name="Intervensi" fill="#ff5f8f" radius={[6,6,0,0]} activeBar={false}><LabelList dataKey="intervention" position="top" className="pbd-bar-label"/></Bar></BarChart></ResponsiveContainer></div></GlassCard>}
 
       <GlassCard className="summary-panel premium-card pbd-membership-card"><div className="card-toolbar"><div><h2>Senarai Murid Mengikut Tahap Penguasaan</h2></div><span className="status-chip">Cetakan lengkap</span></div><div className="pbd-membership-scroll"><table className="data-table pbd-membership-table"><thead><tr><th>TP</th><th>Bilangan</th><th>Nama Murid</th></tr></thead><tbody>{tpMembership.map((r)=><tr key={r.tp}><td><strong>{r.tp}</strong></td><td><strong>{r.count}</strong></td><td>{r.names.length ? r.names.join(', ') : <span className="muted-cell">Tiada murid</span>}</td></tr>)}</tbody></table></div></GlassCard>
     </>}
