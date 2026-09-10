@@ -4,10 +4,10 @@ import { GlassCard } from '../components/GlassCard';
 import { SCHOOL_NAME } from '../lib/constants';
 
 const cards = [
-  { to: '/semakan', icon: Search, title: 'Semakan Ibu Bapa', accent: 'purple' },
-  { to: '/prestasi', icon: BarChart3, title: 'Prestasi Akademik', accent: 'blue' },
-  { to: '/pbd', icon: BookOpenCheck, title: 'Pelaporan PBD', accent: 'green' },
-  { to: '/guru', icon: ShieldCheck, title: 'Akses Guru', accent: 'amber' }
+  { to: '/semakan', icon: Search, title: 'Semakan Ibu Bapa', description: 'Semak pencapaian anak anda', accent: 'purple' },
+  { to: '/prestasi', icon: BarChart3, title: 'Prestasi Akademik', description: 'Analisis dan pencapaian murid', accent: 'blue' },
+  { to: '/pbd', icon: BookOpenCheck, title: 'Pelaporan PBD', description: 'Laporan pentaksiran bersepadu', accent: 'green' },
+  { to: '/guru', icon: ShieldCheck, title: 'Akses Guru', description: 'Sistem untuk guru', accent: 'amber' }
 ];
 
 export function HomePage() {
@@ -17,10 +17,12 @@ export function HomePage() {
       <h1>{SCHOOL_NAME}</h1>
     </section>
     <section className="portal-grid">
-      {cards.map(({ to, icon: Icon, title, accent }) => <Link to={to} key={to} className="portal-card-link">
+      {cards.map(({ to, icon: Icon, title, description, accent }) => <Link to={to} key={to} className="portal-card-link">
         <GlassCard className={`portal-card accent-${accent}`}>
           <div className="portal-icon"><Icon/></div>
           <h2>{title}</h2>
+          <p>{description}</p>
+          <span className="portal-arrow" aria-hidden="true">→</span>
         </GlassCard>
       </Link>)}
     </section>
