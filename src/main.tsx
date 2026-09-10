@@ -6,9 +6,9 @@ import { AuthProvider } from './contexts/AuthContext';
 import './styles.css';
 import './pristine-import.css';
 import './clean-copy.css';
-import './pbd-analysis-fix.css';
 import './parent-report.css';
 import './premium-system.css';
+import './pbd-analysis-fix.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
