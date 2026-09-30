@@ -1,3 +1,4 @@
+import '../grade-names.css';
 import { useIntelligenceTags } from '../components/IntelligenceTag';
 import { SafeIntelligenceTag } from '../components/SafeIntelligenceTag';
 import { Accessibility, AlertTriangle, CalendarCheck, FileQuestion, Printer, Target, Users, X } from 'lucide-react';
@@ -188,10 +189,12 @@ export function AcademicAnalysisPage() {
     if (!selectedSubject) return [];
     return GRADE_ORDER.map((grade) => {
       const rowsForGrade = currentRows.filter((r) => String(r.grade || '').toUpperCase() === grade);
-      const names = rowsForGrade.map((r) => {
+      // Only pupils whose name is loaded; unique key per pupil (enrolment id).
+      const names = rowsForGrade.flatMap((r) => {
         const enrolment = enrolmentById.get(r.enrolment_id);
-        return enrolment ? studentById.get(enrolment.student_id)?.name || '—' : '—';
-      }).sort((a, b) => a.localeCompare(b));
+        const name = enrolment ? studentById.get(enrolment.student_id)?.name : undefined;
+        return name ? [{ id: r.enrolment_id, name }] : [];
+      }).sort((a, b) => a.name.localeCompare(b.name));
       return { grade, names };
     });
   }, [selectedSubject, currentRows, enrolmentById, studentById]);
@@ -286,7 +289,7 @@ export function AcademicAnalysisPage() {
 
     <GlassCard className="summary-panel performance-summary-wide premium-card"><h3>Rumusan Prestasi</h3><div className="performance-summary-grid"><div className="summary-row"><span>Purata TOV</span><strong>{tovAverage === null ? '—' : tovAverage.toFixed(1)}</strong></div><div className="summary-row"><span>Purata {assessment?.code || 'AR'}</span><strong>{currentAverage === null ? '—' : currentAverage.toFixed(1)}</strong></div><div className="summary-row"><span>ETR</span><strong>{etrAverage === null ? '—' : etrAverage.toFixed(1)}</strong></div><div className="summary-row"><span>MTM</span><strong>{summary.mtm} ({summary.mtmPct.toFixed(1)}%)</strong></div><div className="summary-row"><span>Intervensi</span><strong>{summary.intervention} ({summary.interventionPct.toFixed(1)}%)</strong></div></div></GlassCard>
 
-    <GlassCard className="summary-panel grade-membership-card premium-card"><div className="card-toolbar"><div><h2>Senarai Murid Mengikut Gred</h2></div><span className="status-chip">{assessment?.code || 'Pentaksiran semasa'} · Cetakan lengkap</span></div><div className="grade-membership-scroll"><table className="data-table grade-membership-table compact-grade-table"><thead><tr><th>Gred</th><th>Bilangan</th><th>Nama Murid</th></tr></thead><tbody>{gradeMembership.map((row) => <tr key={row.grade}><td className="grade-membership-grade"><strong>{row.grade}</strong></td><td className="grade-membership-total"><strong>{row.names.length}</strong></td><td>{row.names.length ? <div className="grade-membership-names inline-names">{row.names.map((name) => <span key={name}>{name}</span>)}</div> : <span className="muted-cell">Tiada murid</span>}</td></tr>)}</tbody></table></div></GlassCard>
+    <GlassCard className="summary-panel grade-membership-card premium-card"><div className="card-toolbar"><div><h2>Senarai Murid Mengikut Gred</h2></div><span className="status-chip">{assessment?.code || 'Pentaksiran semasa'} · Cetakan lengkap</span></div><div className="grade-membership-scroll"><table className="data-table grade-membership-table compact-grade-table"><thead><tr><th>Gred</th><th>Bilangan</th><th>Nama Murid</th></tr></thead><tbody>{gradeMembership.map((row) => <tr key={row.grade}><td className="grade-membership-grade"><strong>{row.grade}</strong></td><td className="grade-membership-total"><strong>{row.names.length}</strong></td><td>{row.names.length ? <ol className="grade-names-list">{row.names.map((n) => <li key={n.id}>{n.name}</li>)}</ol> : <span className="muted-cell">Tiada murid</span>}</td></tr>)}</tbody></table></div></GlassCard>
 
     {drilldown && <div className="grade-modal-backdrop no-print" role="dialog" aria-modal="true" aria-label={`Murid gred ${drilldown.grade} ${drilldown.eventCode}`} onMouseDown={(e) => { if (e.currentTarget === e.target) setDrilldown(null); }}>
       <div className="grade-modal"><div className="grade-modal-head"><div><span>{drilldown.eventCode}</span><h2>Gred {drilldown.grade}</h2></div><button className="icon-button" onClick={() => setDrilldown(null)} aria-label="Tutup"><X size={18}/></button></div><div className="grade-modal-count">{drilldown.names.length} murid</div>{drilldown.names.length ? <ol className="grade-modal-list">{drilldown.names.map((name) => <li key={name}>{name}</li>)}</ol> : <div className="empty-inline">Tiada murid dalam kategori ini.</div>}</div>

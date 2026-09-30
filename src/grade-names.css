@@ -1,0 +1,12 @@
+/* Senarai Murid Mengikut Gred: readable, clearly separated names. Scoped classes only. */
+.grade-names-list{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px 8px}
+.grade-names-list li{margin:0;padding:5px 10px;border-radius:8px;background:rgba(10,38,66,.75);border:1px solid rgba(94,177,232,.22);color:#eaf6ff;font-size:12px;line-height:1.4;font-weight:600}
+@media print{
+  html body .grade-membership-card,html body .grade-membership-card *,html body .grade-membership-card .card-toolbar h2,html body .grade-membership-card .data-table th,html body .grade-membership-card .data-table td,html body .grade-membership-card .status-chip{background:#fff!important;color:#000!important;box-shadow:none!important;text-shadow:none!important}
+  .grade-membership-card{border:1px solid #000!important}
+  .grade-membership-card:before,.grade-membership-card:after{display:none!important}
+  .grade-membership-card th,.grade-membership-card td{border:1px solid #999!important}
+  .grade-names-list{display:block}
+  .grade-names-list li{display:inline;padding:0;border:0!important;font-size:9pt;font-weight:400}
+  .grade-names-list li:not(:last-child)::after{content:"; "}
+}
