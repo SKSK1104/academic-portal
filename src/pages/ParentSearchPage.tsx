@@ -1,3 +1,4 @@
+import '../parent-mobile-print.css';
 import { ArrowUpRight, Award, BarChart3, BookOpenCheck, Search, ShieldCheck, Sparkles, TrendingUp, UserRound } from 'lucide-react';
 import { FormEvent, useMemo, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -134,6 +135,7 @@ export function ParentSearchPage(){
             <ResponsiveContainer width="100%" height="100%"><BarChart data={academicTrend} margin={{top:38,right:18,left:0,bottom:0}} barCategoryGap="34%">
               <CartesianGrid vertical={false} strokeDasharray="3 7"/><XAxis dataKey="assessment" tickLine={false} axisLine={false}/><YAxis domain={[0,100]} tickLine={false} axisLine={false}/><Tooltip cursor={{fill:'rgba(154,119,32,.05)'}} formatter={(v:any)=>[`${v} / 100`,'Purata markah']}/><Bar dataKey="average" radius={[10,10,3,3]} maxBarSize={92}>{academicTrend.map((d,i)=><Cell key={d.assessment} className={i===academicTrend.length-1?'parent-bar-current':'parent-bar-past'}/>) }<LabelList dataKey="average" position="top" formatter={(v:any)=>Number(v)>0?Number(v).toFixed(1):''} /></Bar></BarChart></ResponsiveContainer>
           </div>
+          <table className="parent-print-only parent-print-table"><thead><tr><th>Pusingan</th>{academicTrend.map(t=><th key={t.assessment}>{t.assessment}</th>)}</tr></thead><tbody><tr><td>Purata markah</td>{academicTrend.map(t=><td key={t.assessment}>{t.hasData?t.average.toFixed(1):'—'}</td>)}</tr></tbody></table>
           {trendDelta!==null&&<div className={`parent-trend-note ${trendDelta<0?'down':''}`}><TrendingUp size={18}/><strong>{trendDelta>=0?'+':''}{trendDelta.toFixed(1)}</strong><span>perubahan purata daripada rekod awal</span></div>}
         </GlassCard>
 
@@ -142,6 +144,7 @@ export function ParentSearchPage(){
           <div className="parent-chart-frame compact">
             <ResponsiveContainer width="100%" height="100%"><BarChart data={tpDistribution} margin={{top:32,right:8,left:-8,bottom:0}} barCategoryGap="24%"><CartesianGrid vertical={false} strokeDasharray="3 7"/><XAxis dataKey="tp" tickLine={false} axisLine={false}/><YAxis allowDecimals={false} tickLine={false} axisLine={false}/><Tooltip cursor={{fill:'rgba(154,119,32,.05)'}} formatter={(v:any)=>[v,'Mata pelajaran']}/><Bar dataKey="count" radius={[8,8,2,2]} maxBarSize={58}>{tpDistribution.map((d,i)=><Cell key={d.tp} className={`parent-tp-bar parent-tp-bar-${i+1}`}/>) }<LabelList dataKey="count" position="top" formatter={(v:any)=>String(v)}/></Bar></BarChart></ResponsiveContainer>
           </div>
+          <table className="parent-print-only parent-print-table"><thead><tr><th>Tahap</th>{tpDistribution.map(t=><th key={t.tp}>{t.tp}</th>)}</tr></thead><tbody><tr><td>Bilangan subjek</td>{tpDistribution.map(t=><td key={t.tp}>{t.count}</td>)}</tr></tbody></table>
           <div className="parent-pbd-foot"><span><strong>{pbdMtm}</strong> subjek TP3–TP6</span><span><strong>{latestPbdRows.length-pbdMtm}</strong> subjek TP1–TP2</span></div>
         </GlassCard>
       </section>
@@ -149,11 +152,13 @@ export function ParentSearchPage(){
       <GlassCard className="parent-detail-card premium-parent-card">
         <div className="parent-section-head"><div><span>REKOD TERPERINCI</span><h2>Prestasi Akademik Mengikut Mata Pelajaran</h2><p>Perbandingan markah dan gred bagi setiap pusingan</p></div><UserRound size={20}/></div>
         <div className="table-scroll parent-table-scroll"><table className="data-table parent-premium-table"><thead><tr><th>Mata Pelajaran</th>{academicAssessments.map(a=><th key={a.code}>{a.code}</th>)}</tr></thead><tbody>{academicSubjects.map(s=><tr key={s.code}><td><strong>{s.name}</strong></td>{academicAssessments.map(a=>{const r=report.academic.find(x=>(x.subject_code||x.subject)===s.code&&x.assessment===a.code);return <td key={a.code}>{r?<div className="parent-result-cell"><strong>{r.score??'—'}</strong><span className={`grade grade-${String(r.grade||'').toLowerCase()}`}>{r.grade||'—'}</span></div>:'—'}</td>})}</tr>)}</tbody></table></div>
+        <div className="parent-mobile-cards">{academicSubjects.map(s=><div className="parent-mobile-card" key={s.code}><h3>{s.name}</h3><ul>{academicAssessments.map(a=>{const r=report.academic.find(x=>(x.subject_code||x.subject)===s.code&&x.assessment===a.code);return <li key={a.code}><span className="parent-mobile-round">{a.code}</span>{r?<><strong className="parent-mobile-score">{r.score??'—'}</strong><span className={`grade grade-${String(r.grade||'').toLowerCase()}`}>{r.grade||'—'}</span></>:<span className="parent-mobile-empty">Tiada rekod</span>}</li>})}</ul></div>)}</div>
       </GlassCard>
 
       <GlassCard className="parent-detail-card premium-parent-card">
         <div className="parent-section-head"><div><span>PBD</span><h2>Tahap Penguasaan Mengikut Mata Pelajaran</h2><p>Perbandingan tahap penguasaan bagi setiap pusingan</p></div></div>
         <div className="table-scroll parent-table-scroll"><table className="data-table parent-premium-table"><thead><tr><th>Mata Pelajaran</th>{pbdAssessments.map(a=><th key={a.code}>{a.code}</th>)}</tr></thead><tbody>{pbdSubjects.map(s=><tr key={s.code}><td><strong>{s.name}</strong></td>{pbdAssessments.map(a=>{const r=report.pbd.find(x=>(x.subject_code||x.subject)===s.code&&x.assessment===a.code);return <td key={a.code}>{r?<span className={`tp-orb tp-${r.tp}`}>TP{r.tp}</span>:'—'}</td>})}</tr>)}</tbody></table></div>
+        <div className="parent-mobile-cards">{pbdSubjects.map(s=><div className="parent-mobile-card" key={s.code}><h3>{s.name}</h3><ul>{pbdAssessments.map(a=>{const r=report.pbd.find(x=>(x.subject_code||x.subject)===s.code&&x.assessment===a.code);return <li key={a.code}><span className="parent-mobile-round">{a.code}</span>{r?<span className={`tp-orb tp-${r.tp}`}>TP{r.tp}</span>:<span className="parent-mobile-empty">Tiada rekod</span>}</li>})}</ul></div>)}</div>
       </GlassCard>
 
       <ParentPsychometricSection profiles={report.psychometric} />

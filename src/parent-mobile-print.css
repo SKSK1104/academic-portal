@@ -1,0 +1,60 @@
+/* Semakan Ibu Bapa: mobile subject cards + black-and-white print. Scoped to the parent report. */
+
+/* ---------- Phones: one card per subject instead of a sideways-scrolling table ---------- */
+.parent-mobile-cards{display:none}
+@media(max-width:780px){
+  .premium-parent-report .parent-table-scroll{display:none!important}
+  .parent-mobile-cards{display:grid;gap:10px}
+  .parent-mobile-card{padding:12px 14px;border:1px solid rgba(130,180,220,.28);border-radius:14px;background:rgba(6,22,42,.66)}
+  .parent-mobile-card h3{margin:0 0 8px;font-size:15px;color:#fff}
+  .parent-mobile-card ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+  .parent-mobile-card li{display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid rgba(130,180,220,.14)}
+  .parent-mobile-card li:first-child{border-top:0}
+  .parent-mobile-round{min-width:52px;font-size:12px;font-weight:800;letter-spacing:.06em;color:#a9c2da}
+  .parent-mobile-score{font-size:17px;color:#fff;min-width:34px}
+  .parent-mobile-empty{font-size:12px;color:#8fa6bd}
+}
+
+/* ---------- Print: clean black and white, fitted to the page ---------- */
+.parent-print-only{display:none}
+@media print{
+  @page{size:A4 portrait;margin:12mm}
+  html,body{background:#fff!important}
+  html body .topbar,html body .footer,html body .public-header,html body header,html body footer,
+  html body .parent-new-search,html body .parent-search-card,html body .privacy-note,html body .parent-lookup-stage .lookup-copy{display:none!important}
+  html body .premium-parent-report{font-size:12px}
+  html body .premium-parent-report .parent-dashboard-grid{grid-template-columns:1fr 1fr!important}
+  html body .premium-parent-report,html body .premium-parent-report *{background:#fff!important;background-image:none!important;color:#000!important;
+    box-shadow:none!important;text-shadow:none!important;-webkit-text-fill-color:#000!important;backdrop-filter:none!important}
+  html body .premium-parent-report .premium-parent-card,html body .premium-parent-report .parent-kpi-card{border:1px solid #000!important;border-radius:8px!important;break-inside:avoid}
+  html body .premium-parent-report .premium-parent-card:before,html body .premium-parent-report .premium-parent-card:after,
+  html body .premium-parent-report .parent-kpi-card:before,html body .premium-parent-report .parent-kpi-card:after{display:none!important}
+  html body .premium-parent-report .parent-kpi-rail{display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:8px!important}
+  html body .premium-parent-report .parent-dashboard-grid{display:grid!important;grid-template-columns:1.4fr 1fr!important;gap:10px!important}
+  html body .premium-parent-report .parent-profile-medallion{border:2px solid #000!important}
+  html body .premium-parent-report .parent-table-scroll{display:block!important;overflow:visible!important}
+  html body .premium-parent-report .parent-mobile-cards{display:none!important}
+  html body .premium-parent-report .data-table{min-width:0!important;width:100%!important}
+  html body .premium-parent-report .data-table th,html body .premium-parent-report .data-table td{border:1px solid #888!important}
+  html body .premium-parent-report .grade,html body .premium-parent-report .tp-orb{border:1px solid #000!important;border-radius:4px!important}
+  html body .premium-parent-report .recharts-wrapper{filter:grayscale(1)}
+  html body .premium-parent-report .recharts-text,html body .premium-parent-report .recharts-cartesian-axis-tick-value{fill:#000!important}
+  /* Compact spacing so sections share pages instead of one per page */
+  html body .premium-parent-report{gap:10px!important}
+  html body .premium-parent-report .premium-parent-card{padding:12px 14px!important;min-height:0!important}
+  html body .premium-parent-report .parent-section-head{margin-bottom:8px!important}
+  html body .premium-parent-report .parent-section-head h2{font-size:17px!important;line-height:1.2!important}
+  html body .premium-parent-report .parent-section-head p{font-size:11px!important;margin:2px 0 0!important}
+  html body .premium-parent-report .data-table th,html body .premium-parent-report .data-table td{padding:4px 8px!important;height:auto!important;line-height:1.35!important;font-size:11px!important}
+  html body .premium-parent-report .parent-result-cell{gap:6px!important;min-height:0!important}
+  html body .premium-parent-report .grade,html body .premium-parent-report .tp-orb{min-width:0!important;min-height:0!important;width:auto!important;height:auto!important;padding:1px 5px!important;font-size:10px!important;line-height:1.3!important}
+  html body .premium-parent-report .parent-psy-dominant-item{padding:8px 10px!important}
+  html body .premium-parent-report .parent-psy-desc{font-size:10px!important}
+  /* Charts are replaced by compact tables of the same numbers (reliable on every printer/browser) */
+  html body .premium-parent-report .parent-chart-frame,html body .premium-parent-report .parent-psy-chart{display:none!important}
+  html body .premium-parent-report .parent-print-only{display:table!important;width:100%;table-layout:fixed;border-collapse:collapse;margin:8px 0 6px;font-size:10px}
+  html body .premium-parent-report .parent-print-table th,html body .premium-parent-report .parent-print-table td{border:1px solid #888!important;padding:3px 2px!important;text-align:center;overflow-wrap:anywhere}
+  html body .premium-parent-report .parent-print-table th:first-child,html body .premium-parent-report .parent-print-table td:first-child{width:28%}
+  html body .premium-parent-report .parent-print-table th:first-child,html body .premium-parent-report .parent-print-table td:first-child{text-align:left;font-weight:700}
+
+}
