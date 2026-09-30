@@ -1,6 +1,6 @@
 import '../intelligence.css';
 import { useEffect, useState } from 'react';
-import { MI_COLORS, MI_LABELS, isMiProfile, type PsyProfile } from '../lib/intelligence';
+import { MI_COLORS, MI_LABELS, tagCodes, type PsyProfile } from '../lib/intelligence';
 import { loadDominantTags } from '../lib/intelligenceData';
 
 // Read-only. Loads tags for the given enrolments; failures just mean no tags.
@@ -16,8 +16,9 @@ export function useIntelligenceTags(enrolmentIds: string[]) {
 }
 
 export function IntelligenceTag({ profile }: { profile?: PsyProfile }) {
-  if (!profile || !isMiProfile(profile)) return null;
-  return <span className="mi-tags" title="Kecerdasan dominan">
-    {profile.dominant!.map((code) => <span key={code} className="mi-tag" style={{ borderColor: MI_COLORS[code], color: MI_COLORS[code] }}>{MI_LABELS[code]}</span>)}
+  const codes = tagCodes(profile);
+  if (!codes.length) return null;
+  return <span className="mi-tags" title={profile?.format === 'T4_APTITUD' ? 'Kekuatan (Ujian Aptitud Tahun 4)' : 'Kecerdasan dominan'}>
+    {codes.map((code) => <span key={code} className="mi-tag" style={{ borderColor: MI_COLORS[code], color: MI_COLORS[code] }}>{MI_LABELS[code]}</span>)}
   </span>;
 }
