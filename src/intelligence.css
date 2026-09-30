@@ -1,0 +1,31 @@
+/* Kecerdasan Pelbagai — every selector is prefixed .mi- so nothing else is affected. */
+.mi-tags{display:inline-flex;flex-wrap:wrap;gap:4px;margin-left:8px;vertical-align:middle}
+.mi-tag{display:inline-block;padding:2px 7px;border:1px solid currentColor;border-radius:999px;font-size:10px;font-weight:800;line-height:1.5;white-space:nowrap;background:rgba(255,255,255,.04)}
+.mi-upload{padding:18px;margin-bottom:18px}
+.mi-upload-row{display:grid;grid-template-columns:160px 1fr;gap:12px;align-items:end}
+.mi-upload-row label{background:transparent;padding:0}
+.mi-upload .upload-button{margin-top:0}
+.mi-help{font-size:12px;opacity:.75;margin:10px 0 0;line-height:1.55}
+.mi-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
+.mi-stat{padding:16px}
+.mi-stat span{display:block;font-size:11px;font-weight:800;opacity:.7}
+.mi-stat strong{display:block;font-size:24px;margin-top:6px;line-height:1.2}
+.mi-stat small{display:block;font-size:11px;opacity:.7;margin-top:4px}
+.mi-charts{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.mi-chart{padding:0}
+.mi-chart-body{height:300px;padding:14px 14px 8px}
+.mi-chart-body.tall{height:340px}
+.mi-note{font-size:11px;opacity:.7;padding:0 18px 14px}
+.mi-b-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:16px}
+.mi-b-grid div{padding:12px;border:1px solid rgba(130,180,220,.2);border-radius:8px}
+.mi-b-grid h3{margin:0 0 8px;font-size:13px}
+.mi-b-grid p{margin:2px 0;font-size:12px}
+.mi-cell{text-align:center;font-weight:800}
+.mi-TINGGI{color:#4fd6a0}
+.mi-SEDERHANA{color:#ffc44d}
+.mi-RENDAH{color:#ff7a8a}
+.mi-baik{color:#4fd6a0;font-weight:800}
+.mi-kurang{color:#ff7a8a;font-weight:800}
+.mi-legend{display:flex;flex-wrap:wrap;gap:12px;padding:12px 18px;font-size:11px;opacity:.85}
+@media(max-width:900px){.mi-charts,.mi-stats,.mi-b-grid{grid-template-columns:1fr}.mi-upload-row{grid-template-columns:1fr}}
+@media print{.mi-upload{display:none!important}.mi-charts{grid-template-columns:1fr 1fr}}
