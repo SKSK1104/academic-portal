@@ -13,6 +13,7 @@ const MarkEntryPage = lazy(() => import('./pages/MarkEntryPage').then((m) => ({ 
 const ParentSearchPage = lazy(() => import('./pages/ParentSearchPage').then((m) => ({ default: m.ParentSearchPage })));
 const PbdAnalysisPage = lazy(() => import('./pages/PbdAnalysisPage').then((m) => ({ default: m.PbdAnalysisPage })));
 const PublicAcademicPage = lazy(() => import('./pages/PublicAcademicPage').then((m) => ({ default: m.PublicAcademicPage })));
+const PublicPsychometricPage = lazy(() => import('./pages/PublicPsychometricPage').then((m) => ({ default: m.PublicPsychometricPage })));
 const PublicPbdPage = lazy(() => import('./pages/PublicPbdPage').then((m) => ({ default: m.PublicPbdPage })));
 const TeacherDashboardPage = lazy(() => import('./pages/TeacherDashboardPage').then((m) => ({ default: m.TeacherDashboardPage })));
 const TeacherLoginPage = lazy(() => import('./pages/TeacherLoginPage').then((m) => ({ default: m.TeacherLoginPage })));
@@ -33,6 +34,7 @@ export default function App() {
         <Route path="semakan" element={<ParentSearchPage />} />
         <Route path="prestasi" element={<PublicAcademicPage />} />
         <Route path="pbd" element={<PublicPbdPage />} />
+        <Route path="psikometrik" element={<PublicPsychometricPage />} />
         <Route path="guru/login" element={<TeacherLoginPage />} />
       </Route>
       <Route path="guru" element={<ProtectedRoute><TeacherShell /></ProtectedRoute>}>
