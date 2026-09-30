@@ -1,0 +1,64 @@
+/* Semakan Ibu Bapa — readability + palette pass (screen only). Scoped to the parent report. */
+@media screen{
+  html body .premium-parent-report{--pr-text:#f3f8ff;--pr-soft:#b7cadf;--pr-label:#8fb0cf;--pr-accent:#5bc0ff;--pr-gold:#e6c46a;--pr-rose:#ff8a9a}
+
+  /* Hero */
+  html body .premium-parent-report .parent-student-overline{color:var(--pr-gold)!important}
+  html body .premium-parent-report .parent-report-hero h1{color:var(--pr-text)!important}
+  html body .premium-parent-report .parent-identity-line small{color:var(--pr-label)!important}
+  html body .premium-parent-report .parent-identity-line strong{color:var(--pr-text)!important;-webkit-text-fill-color:var(--pr-text)!important;opacity:1!important}
+  html body .premium-parent-report .parent-hero-seal,html body .premium-parent-report .parent-hero-seal span{color:var(--pr-soft)!important}
+  html body .premium-parent-report .parent-hero-seal strong{color:var(--pr-text)!important;-webkit-text-fill-color:var(--pr-text)!important}
+  html body .premium-parent-report .parent-hero-seal svg{color:var(--pr-accent)!important;stroke:var(--pr-accent)!important}
+
+  /* KPI cards */
+  html body .premium-parent-report .parent-kpi-card span:not(.parent-kpi-icon){color:var(--pr-label)!important}
+  html body .premium-parent-report .parent-kpi-card strong{color:var(--pr-text)!important;-webkit-text-fill-color:var(--pr-text)!important;opacity:1!important}
+  html body .premium-parent-report .parent-kpi-card small{color:var(--pr-soft)!important}
+  html body .premium-parent-report .parent-kpi-icon{background:rgba(91,192,255,.14)!important;border:1px solid rgba(91,192,255,.42)!important;color:var(--pr-accent)!important}
+  html body .premium-parent-report .parent-kpi-icon svg{color:var(--pr-accent)!important;stroke:var(--pr-accent)!important}
+  html body .premium-parent-report .parent-kpi-attention strong{color:var(--pr-rose)!important;-webkit-text-fill-color:var(--pr-rose)!important}
+  html body .premium-parent-report .parent-kpi-attention .parent-kpi-icon{background:rgba(255,138,154,.14)!important;border-color:rgba(255,138,154,.45)!important}
+  html body .premium-parent-report .parent-kpi-attention .parent-kpi-icon svg{color:var(--pr-rose)!important;stroke:var(--pr-rose)!important}
+
+  /* Section headings */
+  html body .premium-parent-report .parent-section-head span{color:var(--pr-gold)!important}
+  html body .premium-parent-report .parent-section-head h2{color:var(--pr-text)!important}
+  html body .premium-parent-report .parent-section-head p{color:var(--pr-soft)!important}
+  html body .premium-parent-report .parent-section-head svg{color:var(--pr-soft)!important;stroke:var(--pr-soft)!important}
+
+  /* Charts */
+  html body .premium-parent-report .recharts-cartesian-axis-tick-value{fill:var(--pr-soft)!important}
+  html body .premium-parent-report .recharts-cartesian-grid line{stroke:rgba(143,176,207,.22)!important}
+  html body .premium-parent-report .recharts-label-list text,html body .premium-parent-report .recharts-label{fill:var(--pr-text)!important;font-weight:800}
+  html body .premium-parent-report .parent-bar-past{fill:#3f78b5!important}
+  html body .premium-parent-report .parent-bar-current{fill:#5bc0ff!important}
+  html body .premium-parent-report .parent-tp-bar-1{fill:#ff7a8a!important}
+  html body .premium-parent-report .parent-tp-bar-2{fill:#ff9f6e!important}
+  html body .premium-parent-report .parent-tp-bar-3{fill:#ffc44d!important}
+  html body .premium-parent-report .parent-tp-bar-4{fill:#a6d86b!important}
+  html body .premium-parent-report .parent-tp-bar-5{fill:#4fd6a0!important}
+  html body .premium-parent-report .parent-tp-bar-6{fill:#38c6dc!important}
+  html body .premium-parent-report .parent-pbd-foot,html body .premium-parent-report .parent-pbd-foot span{color:var(--pr-soft)!important}
+  html body .premium-parent-report .parent-pbd-foot strong{color:var(--pr-text)!important;-webkit-text-fill-color:var(--pr-text)!important}
+
+  /* Change note under the academic chart */
+  html body .premium-parent-report .parent-trend-note{background:rgba(79,214,160,.12)!important;border:1px solid rgba(79,214,160,.42)!important;color:#bff3dd!important}
+  html body .premium-parent-report .parent-trend-note strong,html body .premium-parent-report .parent-trend-note span{color:#bff3dd!important;-webkit-text-fill-color:#bff3dd!important}
+  html body .premium-parent-report .parent-trend-note svg{color:#4fd6a0!important;stroke:#4fd6a0!important}
+  html body .premium-parent-report .parent-trend-note.down{background:rgba(255,138,154,.12)!important;border-color:rgba(255,138,154,.45)!important}
+  html body .premium-parent-report .parent-trend-note.down strong,html body .premium-parent-report .parent-trend-note.down span{color:#ffc7cf!important;-webkit-text-fill-color:#ffc7cf!important}
+  html body .premium-parent-report .parent-trend-note.down svg{color:var(--pr-rose)!important;stroke:var(--pr-rose)!important;transform:scaleY(-1)}
+
+  /* Tables */
+  html body .premium-parent-report .parent-premium-table th{color:var(--pr-soft)!important}
+  html body .premium-parent-report .parent-premium-table td{color:var(--pr-text)!important}
+  html body .premium-parent-report .parent-result-cell strong{color:var(--pr-text)!important;-webkit-text-fill-color:var(--pr-text)!important}
+}
+
+/* Phones: remove the empty space above the buttons; keep KPI labels inside their cards */
+@media screen and (max-width:780px){
+  html body .premium-parent-report .parent-report-hero{padding-top:18px!important}
+  html body .premium-parent-report .parent-kpi-card{display:flex!important;flex-direction:column!important;align-items:flex-start!important;gap:10px!important;min-width:0!important}
+  html body .premium-parent-report .parent-kpi-card span:not(.parent-kpi-icon){letter-spacing:.08em!important;font-size:10.5px!important}
+}

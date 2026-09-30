@@ -1,4 +1,5 @@
 import '../parent-mobile.css';
+import '../parent-readability.css';
 import { ArrowUpRight, Award, BarChart3, BookOpenCheck, Printer, Search, ShieldCheck, Sparkles, TrendingUp, UserRound } from 'lucide-react';
 import { FormEvent, useMemo, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
