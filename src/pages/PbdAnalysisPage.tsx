@@ -1,3 +1,5 @@
+import { useIntelligenceTags } from '../components/IntelligenceTag';
+import { SafeIntelligenceTag } from '../components/SafeIntelligenceTag';
 import { Accessibility, AlertTriangle, Printer, Target, Users, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -171,6 +173,7 @@ export function PbdAnalysisPage() {
     const e = enrolmentById.get(r.enrolment_id); const s = e ? studentById.get(e.student_id) : null;
     return {id:r.enrolment_id,name:s?.name || '—',tp:r.tp};
   }).sort((a,b)=>a.tp-b.tp || a.name.localeCompare(b.name)),[currentRows,enrolmentById,studentById]);
+  const miTags = useIntelligenceTags(interventionRows.map((r) => r.id));
 
   const classDisplay = className === 'ALL' ? 'Seluruh Sekolah' : `${classes.find((c)=>c.className===className)?.yearLevel || ''} ${formatClass(className)}`.trim();
   const hasPbd = assessments.length > 0;
@@ -202,7 +205,7 @@ export function PbdAnalysisPage() {
             <div className="pbd-chart-height">{loading ? <div className="empty-inline">Memuatkan analisis…</div> : <ResponsiveContainer width="100%" height="100%"><BarChart data={tpChartData} margin={{top:48,right:24,bottom:14,left:8}} barCategoryGap="28%"><CartesianGrid vertical={false}/><XAxis dataKey="tp" tickLine={false} axisLine={{stroke:'#6f86a2'}} tick={{fontSize:17,fontWeight:900}}/><YAxis allowDecimals={false} tickLine={false} axisLine={false} tick={{fontSize:14}}/><Tooltip cursor={false} formatter={(v) => [`${v} murid`, 'Bilangan']} contentStyle={{background:'rgba(5,14,31,.96)',border:'1px solid rgba(89,184,255,.34)',borderRadius:14,fontSize:14,color:'#fff',boxShadow:'0 18px 48px rgba(0,0,0,.42)'}}/><Bar dataKey="count" radius={[8,8,0,0]} cursor="pointer" activeBar={false} onClick={(data:any) => { const tp=String(data?.payload?.tp || data?.tp || ''); const found=tpMembership.find((x)=>x.tp===tp); if(found) setDrilldown({tp,names:found.names}); }}>{tpChartData.map((entry, index)=><Cell key={entry.tp} fill={TP_COLORS[index % TP_COLORS.length]}/>) }<LabelList dataKey="count" position="top" className="pbd-bar-label"/></Bar></BarChart></ResponsiveContainer>}</div>
           </GlassCard>
 
-          <GlassCard className="summary-panel intervention-card premium-card"><div className="intervention-body"><h3>Senarai Murid Memerlukan Intervensi ({interventionRows.length})</h3>{interventionRows.length ? <table className="intervention-table"><thead><tr><th>Bil</th><th>Nama Murid</th><th>TP</th></tr></thead><tbody>{interventionRows.map((r,i)=><tr key={r.id}><td>{i+1}</td><td>{r.name}</td><td className="score">TP{r.tp}</td></tr>)}</tbody></table> : <div className="empty-inline">Tiada murid dalam kategori intervensi.</div>}</div></GlassCard>
+          <GlassCard className="summary-panel intervention-card premium-card"><div className="intervention-body"><h3>Senarai Murid Memerlukan Intervensi ({interventionRows.length})</h3>{interventionRows.length ? <table className="intervention-table"><thead><tr><th>Bil</th><th>Nama Murid</th><th>TP</th></tr></thead><tbody>{interventionRows.map((r,i)=><tr key={r.id}><td>{i+1}</td><td>{r.name}<SafeIntelligenceTag profile={miTags.get(r.id)}/></td><td className="score">TP{r.tp}</td></tr>)}</tbody></table> : <div className="empty-inline">Tiada murid dalam kategori intervensi.</div>}</div></GlassCard>
         </div>
 
         <GlassCard className="target-panel premium-card pbd-rumusan-card"><div><h3>Rumusan PBD</h3><div className="target-number">{summary.mtm}<small> MTM</small></div></div><div className="target-meta"><div>Calon: <strong>{candidateCount}</strong></div><div style={{marginTop:8}}>TP1–TP6: <strong>{candidateCount}</strong></div><div style={{marginTop:8}}>TP3–TP6: <strong>{mtmPct.toFixed(1)}%</strong></div><div style={{marginTop:8}}>TP1–TP2: <strong style={{color:'var(--red)'}}>{interventionPct.toFixed(1)}%</strong></div></div></GlassCard>

@@ -1,3 +1,5 @@
+import { useIntelligenceTags } from '../components/IntelligenceTag';
+import { SafeIntelligenceTag } from '../components/SafeIntelligenceTag';
 import { Accessibility, AlertTriangle, CalendarCheck, FileQuestion, Printer, Target, Users, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -167,6 +169,7 @@ export function AcademicAnalysisPage() {
     const student = enrolment ? studentById.get(enrolment.student_id) : null;
     return { id: r.enrolment_id, name: student?.name || '—', grade: r.grade || 'F', score: r.score };
   }).sort((a, b) => (a.score ?? 999) - (b.score ?? 999) || a.name.localeCompare(b.name)), [currentRows, enrolmentById, studentById]);
+  const miTags = useIntelligenceTags(interventionRows.map((r) => r.id));
 
   const gradeProgression = useMemo(() => {
     if (!selectedSubject) return [];
@@ -266,7 +269,7 @@ export function AcademicAnalysisPage() {
           <div className="chart-height large">{loading ? <div className="empty-inline">Memuatkan analisis…</div> : trajectory.some((x) => x.value !== null) ? <ResponsiveContainer width="100%" height="100%"><BarChart data={trajectory} margin={{top:34,right:14,bottom:8,left:0}}><CartesianGrid vertical={false}/><XAxis dataKey="code" tickLine={false} axisLine={{stroke:'rgba(172,211,239,.55)'}} tick={{fontSize:14,fontWeight:800,fill:'#b9ccdf'}}/><YAxis domain={[0,100]} width={38} tickLine={false} axisLine={false} tick={{fontSize:12,fill:'#9fb5ca'}}/><Tooltip formatter={(v) => [`${v}`, 'Purata']} contentStyle={{background:'rgba(5,20,39,.97)',border:'1px solid rgba(112,205,255,.38)',borderRadius:12,color:'#fff',fontSize:13}} labelStyle={{color:'#fff',fontWeight:800}} itemStyle={{color:'#ccecff'}}/><Bar dataKey="value" fill="#ffd166" radius={[8,8,2,2]} maxBarSize={72}><LabelList dataKey="value" position="top" formatter={(value: any) => value === null ? '' : Number(value).toFixed(1)} className="trajectory-bar-label"/></Bar></BarChart></ResponsiveContainer> : <div className="empty-inline">Tiada data trajektori.</div>}</div>
         </GlassCard>
 
-        <GlassCard className="summary-panel intervention-card intervention-under-trajectory premium-card"><div className="intervention-body"><h3>Senarai Murid Memerlukan Intervensi ({interventionRows.length})</h3>{interventionRows.length ? <table className="intervention-table"><thead><tr><th>Bil</th><th>Nama Murid</th><th>Gred</th><th>Markah</th></tr></thead><tbody>{interventionRows.map((r,i) => <tr key={r.id}><td>{i+1}</td><td>{r.name}</td><td className="score">{r.grade}</td><td>{r.score ?? '—'}</td></tr>)}</tbody></table> : <div className="empty-inline">Tiada murid dalam kategori intervensi.</div>}</div></GlassCard>
+        <GlassCard className="summary-panel intervention-card intervention-under-trajectory premium-card"><div className="intervention-body"><h3>Senarai Murid Memerlukan Intervensi ({interventionRows.length})</h3>{interventionRows.length ? <table className="intervention-table"><thead><tr><th>Bil</th><th>Nama Murid</th><th>Gred</th><th>Markah</th></tr></thead><tbody>{interventionRows.map((r,i) => <tr key={r.id}><td>{i+1}</td><td>{r.name}<SafeIntelligenceTag profile={miTags.get(r.id)}/></td><td className="score">{r.grade}</td><td>{r.score ?? '—'}</td></tr>)}</tbody></table> : <div className="empty-inline">Tiada murid dalam kategori intervensi.</div>}</div></GlassCard>
       </div>
 
       <GlassCard className="target-panel premium-card">
