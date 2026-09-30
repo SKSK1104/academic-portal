@@ -8,7 +8,7 @@ import { StudentManagement } from './components/StudentManagement';
 const AcademicAnalysisPage = lazy(() => import('./pages/AcademicAnalysisPage').then((m) => ({ default: m.AcademicAnalysisPage })));
 const HomePage = lazy(() => import('./pages/HomePage').then((m) => ({ default: m.HomePage })));
 const ImportCenterPage = lazy(() => import('./pages/ImportCenterPage').then((m) => ({ default: m.ImportCenterPage })));
-const IntelligencePlaceholderPage = lazy(() => import('./pages/IntelligencePlaceholderPage').then((m) => ({ default: m.IntelligencePlaceholderPage })));
+const IntelligencePage = lazy(() => import('./pages/IntelligencePage').then((m) => ({ default: m.IntelligencePage })));
 const MarkEntryPage = lazy(() => import('./pages/MarkEntryPage').then((m) => ({ default: m.MarkEntryPage })));
 const ParentSearchPage = lazy(() => import('./pages/ParentSearchPage').then((m) => ({ default: m.ParentSearchPage })));
 const PbdAnalysisPage = lazy(() => import('./pages/PbdAnalysisPage').then((m) => ({ default: m.PbdAnalysisPage })));
@@ -41,7 +41,7 @@ export default function App() {
         <Route path="import" element={<ImportDataRoute />} />
         <Route path="analisis" element={<AcademicAnalysisPage />} />
         <Route path="pbd" element={<PbdAnalysisPage />} />
-        <Route path="kecerdasan" element={<IntelligencePlaceholderPage />} />
+        <Route path="kecerdasan" element={<IntelligencePage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
