@@ -1,0 +1,29 @@
+/* Semakan Ibu Bapa: mobile subject cards and report action buttons. Scoped to the parent report. */
+
+/* ---------- Phones: one card per subject instead of a sideways-scrolling table ---------- */
+.parent-mobile-cards{display:none}
+@media(max-width:780px){
+  .premium-parent-report .parent-table-scroll{display:none!important}
+  .parent-mobile-cards{display:grid;gap:10px}
+  .parent-mobile-card{padding:12px 14px;border:1px solid rgba(130,180,220,.28);border-radius:14px;background:rgba(6,22,42,.66)}
+  .parent-mobile-card h3{margin:0 0 8px;font-size:15px;color:#fff}
+  .parent-mobile-card ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+  .parent-mobile-card li{display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid rgba(130,180,220,.14)}
+  .parent-mobile-card li:first-child{border-top:0}
+  .parent-mobile-round{min-width:52px;font-size:12px;font-weight:800;letter-spacing:.06em;color:#a9c2da}
+  .parent-mobile-score{font-size:17px;color:#fff;min-width:34px}
+  .parent-mobile-empty{font-size:12px;color:#8fa6bd}
+}
+
+/* ---------- Report actions: print + new search ---------- */
+.parent-hero-actions{position:absolute;right:20px;top:18px;display:flex;gap:8px;z-index:3}
+.parent-hero-actions .parent-new-search{position:static!important;white-space:nowrap;background:rgba(8,26,48,.82)!important;color:#fff!important;
+  border:1px solid rgba(160,205,240,.5)!important;padding:9px 14px!important;font-size:13px!important;backdrop-filter:blur(8px)}
+.parent-hero-actions .parent-new-search svg{color:#fff!important;stroke:#fff!important}
+.parent-print-button{display:flex;white-space:nowrap;align-items:center;gap:7px;padding:9px 14px;border-radius:999px;border:1px solid rgba(255,214,120,.65);
+  background:linear-gradient(145deg,#f3cf72,#c99a2e);color:#1a1405;font-weight:800;font-size:13px;cursor:pointer;box-shadow:0 6px 18px rgba(201,154,46,.28)}
+.parent-print-button:hover{filter:brightness(1.06)}
+@media(max-width:780px){
+  .parent-hero-actions{position:static;justify-content:flex-start;flex-wrap:wrap;margin:0 0 14px}
+  .parent-print-button,.parent-hero-actions .parent-new-search{padding:8px 12px!important;font-size:12px!important}
+}
