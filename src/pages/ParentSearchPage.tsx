@@ -2,6 +2,7 @@ import { ArrowUpRight, Award, BarChart3, BookOpenCheck, Search, ShieldCheck, Spa
 import { FormEvent, useMemo, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { GlassCard } from '../components/GlassCard';
+import { ParentPsychometricSection, type ParentPsychometric } from '../components/ParentPsychometricSection';
 import { PageHeader } from '../components/PageHeader';
 import { supabase } from '../lib/supabase';
 
@@ -17,6 +18,7 @@ interface ParentReport {
   student:{name:string;student_id:string;class_name:string;year_level:number;school_year:number};
   academic:AcademicRow[];
   pbd:PbdRow[];
+  psychometric?:ParentPsychometric[];
 }
 
 export function ParentSearchPage(){
@@ -153,6 +155,8 @@ export function ParentSearchPage(){
         <div className="parent-section-head"><div><span>PBD</span><h2>Tahap Penguasaan Mengikut Mata Pelajaran</h2><p>Perbandingan tahap penguasaan bagi setiap pusingan</p></div></div>
         <div className="table-scroll parent-table-scroll"><table className="data-table parent-premium-table"><thead><tr><th>Mata Pelajaran</th>{pbdAssessments.map(a=><th key={a.code}>{a.code}</th>)}</tr></thead><tbody>{pbdSubjects.map(s=><tr key={s.code}><td><strong>{s.name}</strong></td>{pbdAssessments.map(a=>{const r=report.pbd.find(x=>(x.subject_code||x.subject)===s.code&&x.assessment===a.code);return <td key={a.code}>{r?<span className={`tp-orb tp-${r.tp}`}>TP{r.tp}</span>:'—'}</td>})}</tr>)}</tbody></table></div>
       </GlassCard>
+
+      <ParentPsychometricSection profiles={report.psychometric} />
     </div>}
   </div>
 }
