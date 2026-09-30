@@ -1,0 +1,20 @@
+/* Pentaksiran Psikometrik (public) + 5-card home grid. Scoped classes only. */
+.psy-context{margin:0 0 14px;font-size:13px;font-weight:700;color:#b9d3ea}
+.psy-block{margin-bottom:14px}
+.psy-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px;vertical-align:middle}
+.psy-table td,.psy-table th{white-space:nowrap}
+@media(min-width:1201px){.portal-grid.portal-grid-five{grid-template-columns:repeat(5,1fr)}}
+@media print{
+  html body .psy-public,html body .psy-public *{background:#fff!important;color:#000!important;box-shadow:none!important;text-shadow:none!important}
+  html body .psy-public .glass-card:before,html body .psy-public .glass-card:after{display:none!important}
+  html body .psy-public .glass-card{border:1px solid #000!important}
+  html body .psy-public .data-table th,html body .psy-public .data-table td{border:1px solid #999!important}
+  html body .psy-public .filter-card{display:none!important}
+  html body .psy-public .mi-chart,html body .psy-public .table-card{break-inside:avoid}
+  html body .psy-public .psy-dot{display:none}
+  html body .psy-public{zoom:.62}
+  html body .psy-public .mi-stats{grid-template-columns:repeat(3,1fr)!important}
+  html body .psy-public .mi-charts,html body .psy-public .mi-b-grid{grid-template-columns:1fr 1fr!important}
+  html body .psy-public .recharts-text,html body .psy-public .recharts-cartesian-axis-tick-value{fill:#000!important}
+  html body .psy-public .recharts-cartesian-grid line{stroke:#ccc!important}
+}

@@ -1,4 +1,5 @@
-import { BarChart3, BookOpenCheck, Search, ShieldCheck } from 'lucide-react';
+import '../public-psychometric.css';
+import { BarChart3, BookOpenCheck, Brain, Search, ShieldCheck } from 'lucide-react';
 import type { CSSProperties } from 'react';
 import { Link } from 'react-router';
 import { GlassCard } from '../components/GlassCard';
@@ -8,6 +9,7 @@ const cards = [
   { to: '/semakan', icon: Search, title: 'Semakan Ibu Bapa', description: 'Semak pencapaian anak anda', accent: 'purple' },
   { to: '/prestasi', icon: BarChart3, title: 'Prestasi Akademik', description: 'Analisis dan pencapaian murid', accent: 'blue' },
   { to: '/pbd', icon: BookOpenCheck, title: 'Pelaporan PBD', description: 'Laporan pentaksiran bersepadu', accent: 'green' },
+  { to: '/psikometrik', icon: Brain, title: 'Pentaksiran Psikometrik', description: 'Analisis kecerdasan pelbagai', accent: 'rose' },
   { to: '/guru', icon: ShieldCheck, title: 'Akses Guru', description: 'Sistem untuk guru', accent: 'amber' }
 ];
 
@@ -30,6 +32,12 @@ const iconGlass: Record<string, CSSProperties> = {
     border: '1px solid rgba(144,244,211,.48)',
     boxShadow: 'inset 0 1px 0 rgba(255,255,255,.30), 0 10px 28px rgba(48,191,152,.16), 0 0 24px rgba(78,226,177,.14)'
   },
+  rose: {
+    color: '#ffe0ec',
+    background: 'linear-gradient(145deg, rgba(255,128,170,.28), rgba(196,72,140,.18))',
+    border: '1px solid rgba(255,176,206,.48)',
+    boxShadow: 'inset 0 1px 0 rgba(255,255,255,.30), 0 10px 28px rgba(230,90,150,.16), 0 0 24px rgba(255,128,170,.13)'
+  },
   amber: {
     color: '#fff2bd',
     background: 'linear-gradient(145deg, rgba(255,209,102,.28), rgba(219,133,54,.18))',
@@ -44,7 +52,7 @@ export function HomePage() {
       <div className="hero-badge">SISTEM PENGURUSAN AKADEMIK DAN PENTAKSIRAN</div>
       <h1>{SCHOOL_NAME}</h1>
     </section>
-    <section className="portal-grid">
+    <section className="portal-grid portal-grid-five">
       {cards.map(({ to, icon: Icon, title, description, accent }) => <Link to={to} key={to} className="portal-card-link">
         <GlassCard className={`portal-card accent-${accent}`}>
           <div className="portal-icon" style={{
