@@ -5,7 +5,7 @@ import { Bar, BarChart, CartesianGrid, Cell, Legend, ResponsiveContainer, Toolti
 import { GlassCard } from '../components/GlassCard';
 import { IntelligenceTag } from '../components/IntelligenceTag';
 import { PageHeader } from '../components/PageHeader';
-import { FORMAT_LABELS, MI_CODES, MI_COLORS, MI_LABELS, miLevel, type MiCode, type PsyProfile } from '../lib/intelligence';
+import { FORMAT_LABELS, MI_CODES, MI_COLORS, MI_LABELS, aptitudeStrengths, miLevel, tagCodes, type MiCode, type PsyProfile } from '../lib/intelligence';
 import { loadProfileYears, loadProfiles, matchToRoster, parsePsychometricPdf, saveProfiles, type MatchResult, type StoredProfile } from '../lib/intelligenceData';
 
 const tooltipStyle = { background: 'rgba(5,20,39,.97)', border: '1px solid rgba(112,205,255,.38)', borderRadius: 12, color: '#fff', fontSize: 13 };
@@ -119,10 +119,10 @@ export function IntelligencePage() {
       {preview.errors.map((w) => <div className="warning-row" key={w}>Ralat: {w}</div>)}
       {preview.match.unmatched.length > 0 && <div className="warning-row">Tidak disimpan (MyKid tiada dalam roster {uploadYear}): {preview.match.unmatched.map((p) => p.name).join(', ')}</div>}
       {preview.match.classMismatch.map((w) => <div className="warning-row" key={w}>Kelas berbeza — {w}</div>)}
-      {preview.profiles[0]?.format === 'T4_APTITUD' && <div className="warning-row">PDF Tahun 4 ialah ujian aptitud (Bahasa dan Matematik) dan tidak mengandungi skor kecerdasan pelbagai, jadi tiada tag kecerdasan dominan untuk Tahun 4.</div>}
+      {preview.profiles[0]?.format === 'T4_APTITUD' && <div className="warning-row">PDF Tahun 4 ialah ujian aptitud. Tag Tahun 4 menunjukkan kekuatan murid: Verbal Linguistik (BM + BI) atau Logik Matematik, berdasarkan peratus skor yang lebih tinggi.</div>}
       <div className="table-scroll" style={{ maxHeight: 320 }}>
         <table className="data-table"><thead><tr><th>Nama</th><th>Kecerdasan dominan</th></tr></thead>
-          <tbody>{preview.profiles.map((p) => <tr key={p.mykid}><td>{p.name}</td><td>{p.dominant ? <IntelligenceTag profile={p} /> : '—'}</td></tr>)}</tbody>
+          <tbody>{preview.profiles.map((p) => <tr key={p.mykid}><td>{p.name}</td><td>{tagCodes(p).length ? <IntelligenceTag profile={p} /> : '—'}</td></tr>)}</tbody>
         </table>
       </div>
       <div className="preview-actions">
@@ -238,14 +238,19 @@ function AptitudeAnalysis({ pupils }: { pupils: PsyProfile[] }) {
   };
   const avg = (section: 'BM' | 'BI' | 'LM') => Math.round(pupils.reduce((a, p) => a + sectionPct(p, section), 0) / pupils.length);
   const weakest = [...skillStats].sort((a, b) => b.Kurang - a.Kurang)[0];
+  const tagsOf = pupils.map((p) => tagCodes(p));
+  const strongBoth = tagsOf.filter((t) => t.length === 2).length;
+  const strongVL = tagsOf.filter((t) => t.length === 1 && t[0] === 'VL').length;
+  const strongLM = tagsOf.filter((t) => t.length === 1 && t[0] === 'LM').length;
 
   return <>
-    <div className="notice">Tahun 4 menggunakan Ujian Aptitud (Bahasa dan Matematik), bukan inventori kecerdasan pelbagai. Analisis di bawah menunjukkan tahap kemahiran; tiada tag kecerdasan dominan untuk Tahun 4.</div>
+    <div className="notice">Tahun 4 menggunakan Ujian Aptitud, bukan inventori kecerdasan pelbagai. Tag kekuatan setiap murid ialah Verbal Linguistik (BM + BI) atau Logik Matematik, mengikut peratus skor yang lebih tinggi; kedua-duanya dipaparkan jika sama.</div>
     <div className="mi-stats">
       <GlassCard className="mi-stat"><span>Purata Bahasa Melayu</span><strong>{avg('BM')}%</strong><small>Verbal Linguistik</small></GlassCard>
       <GlassCard className="mi-stat"><span>Purata Bahasa Inggeris</span><strong>{avg('BI')}%</strong><small>Verbal Linguistik</small></GlassCard>
       <GlassCard className="mi-stat"><span>Purata Logik Matematik</span><strong>{avg('LM')}%</strong><small>Kemahiran paling lemah: {weakest?.name}</small></GlassCard>
     </div>
+    <div className="notice">Kekuatan murid: Verbal Linguistik {strongVL} murid, Logik Matematik {strongLM} murid{strongBoth ? `, sama kuat ${strongBoth} murid` : ''}.</div>
     <GlassCard className="mi-chart" >
       <div className="card-toolbar"><div><h2>Baik dan Kurang Potensi mengikut kemahiran</h2></div></div>
       <div className="mi-chart-body tall"><ResponsiveContainer width="100%" height="100%"><BarChart data={skillStats} layout="vertical" margin={{ top: 8, right: 16, bottom: 4, left: 8 }}>
@@ -258,11 +263,11 @@ function AptitudeAnalysis({ pupils }: { pupils: PsyProfile[] }) {
     <GlassCard className="table-card" >
       <div className="card-toolbar"><div><h2>Profil murid</h2><p>Skor / markah penuh</p></div><span className="status-chip">{pupils.length} murid</span></div>
       <div className="table-scroll"><table className="data-table">
-        <thead><tr><th>Bil</th><th>Nama murid</th>{skills.map((s) => <th key={s.key} title={s.label}>{s.label}</th>)}<th>BM %</th><th>BI %</th><th>LM %</th></tr></thead>
+        <thead><tr><th>Bil</th><th>Nama murid</th><th>Kekuatan</th>{skills.map((s) => <th key={s.key} title={s.label}>{s.label}</th>)}<th>BM %</th><th>BI %</th><th>LM %</th><th>VL %</th></tr></thead>
         <tbody>{pupils.map((p, i) => <tr key={p.mykid}>
-          <td>{i + 1}</td><td className="student-name">{p.name}</td>
+          <td>{i + 1}</td><td className="student-name">{p.name}</td><td><IntelligenceTag profile={p} /></td>
           {(p.aptitude || []).map((a) => <td key={a.key} className={`mi-cell ${a.baik ? 'mi-baik' : 'mi-kurang'}`}>{a.score}/{a.max}</td>)}
-          <td className="mi-cell">{sectionPct(p, 'BM')}</td><td className="mi-cell">{sectionPct(p, 'BI')}</td><td className="mi-cell">{sectionPct(p, 'LM')}</td>
+          <td className="mi-cell">{sectionPct(p, 'BM')}</td><td className="mi-cell">{sectionPct(p, 'BI')}</td><td className="mi-cell">{sectionPct(p, 'LM')}</td><td className="mi-cell">{aptitudeStrengths(p.aptitude)?.VL ?? '—'}</td>
         </tr>)}</tbody>
       </table></div>
       <div className="mi-legend"><span className="mi-baik">■ Baik</span><span className="mi-kurang">■ Kurang Potensi</span></div>

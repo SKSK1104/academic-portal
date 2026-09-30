@@ -76,6 +76,31 @@ export function dominantOf(scores: Partial<Record<MiCode, number>>): MiCode[] {
   return entries.filter(([, v]) => v === top).map(([c]) => c);
 }
 
+// Tahun 4 (aptitude test) only measures Verbal Linguistik (BM + BI) and
+// Logik Matematik. Tag = whichever the pupil scored better in, as a
+// percentage of full marks; both if tied.
+export function aptitudeStrengths(aptitude: AptitudeSkill[] | undefined): { VL: number; LM: number } | null {
+  if (!aptitude?.length) return null;
+  const pct = (rows: AptitudeSkill[]) => {
+    const max = rows.reduce((a, r) => a + r.max, 0);
+    return max ? Math.round(rows.reduce((a, r) => a + r.score, 0) / max * 100) : 0;
+  };
+  return {
+    VL: pct(aptitude.filter((a) => a.section === 'BM' || a.section === 'BI')),
+    LM: pct(aptitude.filter((a) => a.section === 'LM'))
+  };
+}
+
+export function tagCodes(p: PsyProfile | null | undefined): MiCode[] {
+  if (!p) return [];
+  if (p.format === 'T4_APTITUD') {
+    const s = aptitudeStrengths(p.aptitude);
+    if (!s) return [];
+    return s.VL > s.LM ? ['VL'] : s.LM > s.VL ? ['LM'] : ['VL', 'LM'];
+  }
+  return p.dominant || [];
+}
+
 export function isMiProfile(p: PsyProfile | null | undefined): boolean {
-  return !!p && (p.format === 'T5_IKEP' || p.format === 'T6_APTITUD') && !!p.dominant?.length;
+  return tagCodes(p).length > 0;
 }
