@@ -1,8 +1,10 @@
-import { ArrowUpRight, Award, BarChart3, BookOpenCheck, Search, ShieldCheck, Sparkles, TrendingUp, UserRound } from 'lucide-react';
+import '../parent-mobile.css';
+import { ArrowUpRight, Award, BarChart3, BookOpenCheck, Printer, Search, ShieldCheck, Sparkles, TrendingUp, UserRound } from 'lucide-react';
 import { FormEvent, useMemo, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { GlassCard } from '../components/GlassCard';
 import { ParentPsychometricSection, type ParentPsychometric } from '../components/ParentPsychometricSection';
+import { ParentPrintDocument } from '../components/ParentPrintDocument';
 import { PageHeader } from '../components/PageHeader';
 import { supabase } from '../lib/supabase';
 
@@ -106,7 +108,10 @@ export function ParentSearchPage(){
 
     {report&&<div className="parent-report premium-parent-report">
       <section className="parent-report-hero premium-parent-card">
-        <button className="parent-new-search" onClick={()=>{setReport(null);setMykid('');setMessage('')}}><Search size={15}/> Semakan baharu</button>
+        <div className="parent-hero-actions">
+          <button className="parent-print-button" onClick={()=>window.print()}><Printer size={15}/> Cetak laporan</button>
+          <button className="parent-new-search" onClick={()=>{setReport(null);setMykid('');setMessage('')}}><Search size={15}/> Semakan baharu</button>
+        </div>
         <div className="parent-profile-medallion" aria-hidden="true"><span>{initials}</span></div>
         <div className="parent-hero-copy">
           <div className="parent-student-overline">LAPORAN PRESTASI · {report.student.school_year}</div>
@@ -149,14 +154,19 @@ export function ParentSearchPage(){
       <GlassCard className="parent-detail-card premium-parent-card">
         <div className="parent-section-head"><div><span>REKOD TERPERINCI</span><h2>Prestasi Akademik Mengikut Mata Pelajaran</h2><p>Perbandingan markah dan gred bagi setiap pusingan</p></div><UserRound size={20}/></div>
         <div className="table-scroll parent-table-scroll"><table className="data-table parent-premium-table"><thead><tr><th>Mata Pelajaran</th>{academicAssessments.map(a=><th key={a.code}>{a.code}</th>)}</tr></thead><tbody>{academicSubjects.map(s=><tr key={s.code}><td><strong>{s.name}</strong></td>{academicAssessments.map(a=>{const r=report.academic.find(x=>(x.subject_code||x.subject)===s.code&&x.assessment===a.code);return <td key={a.code}>{r?<div className="parent-result-cell"><strong>{r.score??'—'}</strong><span className={`grade grade-${String(r.grade||'').toLowerCase()}`}>{r.grade||'—'}</span></div>:'—'}</td>})}</tr>)}</tbody></table></div>
+        <div className="parent-mobile-cards">{academicSubjects.map(s=><div className="parent-mobile-card" key={s.code}><h3>{s.name}</h3><ul>{academicAssessments.map(a=>{const r=report.academic.find(x=>(x.subject_code||x.subject)===s.code&&x.assessment===a.code);return <li key={a.code}><span className="parent-mobile-round">{a.code}</span>{r?<><strong className="parent-mobile-score">{r.score??'—'}</strong><span className={`grade grade-${String(r.grade||'').toLowerCase()}`}>{r.grade||'—'}</span></>:<span className="parent-mobile-empty">Tiada rekod</span>}</li>})}</ul></div>)}</div>
       </GlassCard>
 
       <GlassCard className="parent-detail-card premium-parent-card">
         <div className="parent-section-head"><div><span>PBD</span><h2>Tahap Penguasaan Mengikut Mata Pelajaran</h2><p>Perbandingan tahap penguasaan bagi setiap pusingan</p></div></div>
         <div className="table-scroll parent-table-scroll"><table className="data-table parent-premium-table"><thead><tr><th>Mata Pelajaran</th>{pbdAssessments.map(a=><th key={a.code}>{a.code}</th>)}</tr></thead><tbody>{pbdSubjects.map(s=><tr key={s.code}><td><strong>{s.name}</strong></td>{pbdAssessments.map(a=>{const r=report.pbd.find(x=>(x.subject_code||x.subject)===s.code&&x.assessment===a.code);return <td key={a.code}>{r?<span className={`tp-orb tp-${r.tp}`}>TP{r.tp}</span>:'—'}</td>})}</tr>)}</tbody></table></div>
+        <div className="parent-mobile-cards">{pbdSubjects.map(s=><div className="parent-mobile-card" key={s.code}><h3>{s.name}</h3><ul>{pbdAssessments.map(a=>{const r=report.pbd.find(x=>(x.subject_code||x.subject)===s.code&&x.assessment===a.code);return <li key={a.code}><span className="parent-mobile-round">{a.code}</span>{r?<span className={`tp-orb tp-${r.tp}`}>TP{r.tp}</span>:<span className="parent-mobile-empty">Tiada rekod</span>}</li>})}</ul></div>)}</div>
       </GlassCard>
 
       <ParentPsychometricSection profiles={report.psychometric} />
+
+      <ParentPrintDocument student={report.student} academic={report.academic} pbd={report.pbd} psychometric={report.psychometric}
+        academicRounds={academicAssessments} academicSubjects={academicSubjects} pbdRounds={pbdAssessments} pbdSubjects={pbdSubjects} />
     </div>}
   </div>
 }
