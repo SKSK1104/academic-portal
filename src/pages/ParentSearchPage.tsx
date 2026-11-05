@@ -44,7 +44,8 @@ export function ParentSearchPage(){
   const academicAssessments=useMemo(()=>{
     if(!report)return [];
     const map=new Map<string,{code:string;sequence:number;year:number}>();
-    report.academic.forEach(r=>map.set(r.assessment,{code:r.assessment,sequence:Number(r.sequence_no||0),year:Number(r.school_year||0)}));
+    // UASA is the end-of-year exam, so it always sorts after every AR of the same year.
+    report.academic.forEach(r=>map.set(r.assessment,{code:r.assessment,sequence:r.assessment_kind==='UASA'?999:Number(r.sequence_no||0),year:Number(r.school_year||0)}));
     return [...map.values()].sort((a,b)=>a.year-b.year||a.sequence-b.sequence||a.code.localeCompare(b.code));
   },[report]);
 
