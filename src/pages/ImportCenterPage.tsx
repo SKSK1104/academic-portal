@@ -5,7 +5,6 @@ import { PageHeader } from '../components/PageHeader';
 import { parseAssessmentPdf, uploadAssessmentPdf } from '../lib/importers/pdfImport';
 import { parseRosterCsv, type RosterImportRow } from '../lib/importers/rosterCsv';
 import { subjectCodeFromLabel, religiousSubjectForStudent } from '../lib/subjects';
-import { uasaCode } from '../lib/data';
 import { supabase } from '../lib/supabase';
 import type { ParsedPdfDocument } from '../lib/types';
 
@@ -33,7 +32,6 @@ export function ImportCenterPage({ mode = 'UASA' }: { mode?: 'UASA' | 'PBD' | 'R
   const [schoolYear, setSchoolYear] = useState(new Date().getFullYear());
   const [pdfHint, setPdfHint] = useState<'AUTO' | 'UASA' | 'PBD'>('AUTO');
   const [pbdRound, setPbdRound] = useState<PbdRound>('AUTO');
-  const [uasaRoundNo, setUasaRoundNo] = useState(1);
   const [history, setHistory] = useState<any[]>([]);
 
   const parsedPreview = preview?.kind === 'PDF' ? preview.payload as ParsedPdfDocument : null;
@@ -172,7 +170,6 @@ export function ImportCenterPage({ mode = 'UASA' }: { mode?: 'UASA' | 'PBD' | 'R
     const pbdCode = isPbd(parsed) ? resolvePbdRound(parsed, pbdRound) : null;
     if (isPbd(parsed) && !pbdCode) throw new Error('Pilih PBD 1 atau PBD 2 sebelum mengesahkan import.');
 
-    const uasaCodeSel = uasaCode(uasaRoundNo);
 
     const className = parsed.class_name ? normalizeClassName(parsed.class_name) : '';
     let matchedEnrolments: any[] = [];
@@ -203,14 +200,14 @@ export function ImportCenterPage({ mode = 'UASA' }: { mode?: 'UASA' | 'PBD' | 'R
       if (missing.length) throw new Error(`Murid tidak dapat dipadankan (${missing.length}): ${missing.slice(0, 5).join(', ')}`);
 
       if (isUasa) {
-        const existing = await supabase.from('v2_assessments').select('id').eq('school_year', year).eq('kind', 'UASA').eq('code', uasaCodeSel).limit(1);
+        const existing = await supabase.from('v2_assessments').select('id').eq('school_year', year).eq('kind', 'UASA').eq('code', 'UASA').limit(1);
         if (existing.error) throw existing.error;
         const existingId = existing.data?.[0]?.id;
         if (existingId && matchedEnrolments.length) {
           const filled = await supabase.from('v2_academic_marks').select('id', { count: 'exact', head: true })
             .eq('assessment_id', existingId).in('enrolment_id', matchedEnrolments.map((e: any) => e.id));
           if (filled.error) throw filled.error;
-          if ((filled.count || 0) > 0) throw new Error(`UASA ${uasaRoundNo} ${year} untuk kelas ${className} sudah ada markah. Import tidak diteruskan untuk mengelakkan data ditindih.`);
+          if ((filled.count || 0) > 0) throw new Error(`UASA ${year} untuk kelas ${className} sudah ada markah. Import tidak diteruskan untuk mengelakkan data ditindih.`);
         }
       }
     }
@@ -226,11 +223,11 @@ export function ImportCenterPage({ mode = 'UASA' }: { mode?: 'UASA' | 'PBD' | 'R
     if (parsed.doc_type === 'PBD_SUMMARY') return;
 
     const kind = isUasa ? 'UASA' : 'PBD';
-    const code = isUasa ? uasaCodeSel : pbdCode!;
-    const title = isUasa ? `UASA ${uasaRoundNo} ${year}` : `${code} ${year}`;
+    const code = isUasa ? 'UASA' : pbdCode!;
+    const title = isUasa ? `UASA ${year}` : `${code} ${year}`;
     const { data: assessment, error: ae } = await supabase.from('v2_assessments').upsert({
       school_year: year, kind, code, title, source_kind: 'pdf', is_active: true,
-      sequence_no: isUasa ? uasaRoundNo : code === 'PBD1' ? 1 : 2
+      sequence_no: isUasa ? null : code === 'PBD1' ? 1 : 2
     }, { onConflict: 'school_year,code' }).select('*').single();
     if (ae) throw ae;
 
@@ -326,11 +323,10 @@ export function ImportCenterPage({ mode = 'UASA' }: { mode?: 'UASA' | 'PBD' | 'R
   return <>
     {mode !== 'ROSTER' && <GlassCard className="assessment-import-panel">
       <div className="assessment-import-heading"><FileText size={22}/><h2>Muat Naik {mode}</h2></div>
-      <p className="import-help">1. Pilih tahun dan pusingan · 2. Pilih fail PDF satu kelas · 3. Semak pratonton, tekan Sahkan Import</p>
+      <p className="import-help">1. Pilih tahun · 2. Pilih fail PDF satu kelas · 3. Semak pratonton, tekan Sahkan Import</p>
       <div className="assessment-import-controls">
         <label>Tahun<input type="number" value={schoolYear} onChange={(e) => setSchoolYear(Number(e.target.value))}/></label>
         {mode === 'PBD' && <label>Pusingan PBD<select value={pbdRound} onChange={(e) => setPbdRound(e.target.value as PbdRound)}><option value="AUTO">Ikut PDF</option><option value="PBD1">PBD 1</option><option value="PBD2">PBD 2</option></select></label>}
-        {mode === 'UASA' && <label>Pusingan UASA<select value={uasaRoundNo} onChange={(e) => setUasaRoundNo(Number(e.target.value))}><option value={1}>UASA 1</option><option value={2}>UASA 2</option><option value={3}>UASA 3</option><option value={4}>UASA 4</option></select></label>}
         <label className="primary-upload"><span>Fail PDF</span><span className="upload-button"><UploadCloud size={17}/> Pilih PDF<input type="file" accept="application/pdf" hidden onChange={(e) => handlePdf(e.target.files)}/></span></label>
       </div>
     </GlassCard>}

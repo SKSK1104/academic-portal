@@ -52,24 +52,15 @@ export async function createNextAr(schoolYear: number): Promise<Assessment> {
   return data as Assessment;
 }
 
-// UASA round codes: round 1 keeps the original code 'UASA' so existing data is untouched.
-export function uasaCode(round: number): string {
-  return round <= 1 ? 'UASA' : `UASA${round}`;
-}
-
-export function uasaRound(code: string): number {
-  return Number(String(code).replace(/\D/g, '')) || 1;
-}
-
-export async function createNextUasa(schoolYear: number): Promise<Assessment> {
+// UASA happens once per year, always stored with code 'UASA'.
+export async function ensureUasa(schoolYear: number): Promise<Assessment> {
   const existing = await getAssessments(schoolYear, 'UASA');
-  const next = Math.max(0, ...existing.map((x) => uasaRound(x.code))) + 1;
+  if (existing[0]) return existing[0];
   const { data, error } = await supabase.from('v2_assessments').insert({
     school_year: schoolYear,
     kind: 'UASA',
-    code: uasaCode(next),
-    sequence_no: next,
-    title: `UASA ${next} ${schoolYear}`,
+    code: 'UASA',
+    title: `UASA ${schoolYear}`,
     source_kind: 'manual',
     is_active: true
   }).select('*').single();
