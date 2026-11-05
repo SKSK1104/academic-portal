@@ -42,8 +42,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) throw error;
     },
     signOut: async () => {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      // Log out on this device immediately; never wait on (or fail because of) the server.
+      setSession(null);
+      try { await supabase.auth.signOut({ scope: 'local' }); } catch { /* login is cleared locally regardless */ }
+      window.location.assign('/guru/login');
     }
   }), [session, loading]);
 
