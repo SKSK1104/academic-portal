@@ -1,4 +1,4 @@
-import { ArrowRightLeft, Search, UserMinus, UserPlus } from 'lucide-react';
+import { Search, UserMinus, UserPlus } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { GlassCard } from './GlassCard';
 import { supabase } from '../lib/supabase';
@@ -22,6 +22,7 @@ export function StudentManagement() {
   const [query, setQuery] = useState('');
   const [newPupil, setNewPupil] = useState<NewPupil>(blankPupil());
   const [busy, setBusy] = useState(false);
+  const [showAdd, setShowAdd] = useState(false);
   const [message, setMessage] = useState('');
 
   useEffect(() => { void load(); }, [schoolYear]);
@@ -130,18 +131,18 @@ export function StudentManagement() {
   }
 
   return <section className="student-management-section">
-    <div className="section-heading secretary-heading"><div><span className="restricted-kicker">SETIAUSAHA PEPERIKSAAN SAHAJA</span><h2>Pengurusan Murid</h2></div><div className="status-chip"><ArrowRightLeft size={15}/> Roster hidup</div></div>
+    <div className="section-heading secretary-heading"><div><h2>Kemas Kini Murid</h2><span className="setup-note">Untuk Setiausaha</span></div><button type="button" className="btn btn-primary" onClick={() => setShowAdd((v) => !v)}><UserPlus size={16}/>{showAdd ? 'Tutup' : 'Tambah Murid Masuk'}</button></div>
 
-    <div className="student-management-grid">
+    <div className={`student-management-grid${showAdd ? '' : ' single'}`}>
       <GlassCard className="student-admin-card premium-card">
         <div className="student-admin-head"><div><UserMinus size={20}/><h3>Murid Berpindah Keluar</h3></div><label className="year-inline">Tahun<input type="number" value={schoolYear} onChange={(e) => setSchoolYear(Number(e.target.value))}/></label></div>
         <div className="pupil-search"><Search size={17}/><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Cari nama atau MyKid"/></div>
         <div className="pupil-admin-list">
-          {filtered.length ? filtered.map((r) => <div className="pupil-admin-row" key={r.id}><div><strong>{r.students?.name || '—'}</strong><span>{r.year_level} {formatClass(r.class_name)}</span></div><button className="btn btn-danger" disabled={busy} onClick={() => void markMovedOut(r)}>Berpindah Keluar</button></div>) : <div className="empty-inline">Tiada murid sepadan.</div>}
+          {query.trim().length < 2 ? <div className="empty-inline">Taip sekurang-kurangnya 2 huruf nama atau nombor MyKid untuk mencari murid.</div> : filtered.length ? filtered.slice(0, 30).map((r) => <div className="pupil-admin-row" key={r.id}><div><strong>{r.students?.name || '—'}</strong><span>{r.year_level} {formatClass(r.class_name)}</span></div><button className="btn btn-danger" disabled={busy} onClick={() => void markMovedOut(r)}>Berpindah Keluar</button></div>) : <div className="empty-inline">Tiada murid sepadan.</div>}
         </div>
       </GlassCard>
 
-      <GlassCard className="student-admin-card premium-card">
+      {showAdd && <GlassCard className="student-admin-card premium-card">
         <div className="student-admin-head"><div><UserPlus size={20}/><h3>Murid Masuk</h3></div></div>
         <div className="pupil-form-grid">
           <label>Nama Murid<input value={newPupil.name} onChange={(e) => setNewPupil((p) => ({ ...p, name: e.target.value }))}/></label>
@@ -152,7 +153,7 @@ export function StudentManagement() {
           <label className="mbpk-toggle"><span>MBPK</span><input type="checkbox" checked={newPupil.mbpk} onChange={(e) => setNewPupil((p) => ({ ...p, mbpk: e.target.checked }))}/></label>
         </div>
         <button className="btn btn-primary btn-block" disabled={busy || !classes.length} onClick={() => void addPupil()}><UserPlus size={16}/> Tambah ke Roster Aktif</button>
-      </GlassCard>
+      </GlassCard>}
     </div>
     {message && <div className={`notice ${message.includes('ditambah') || message.includes('dikeluarkan') ? 'success' : ''}`}>{message}</div>}
   </section>;

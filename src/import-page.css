@@ -54,3 +54,15 @@
 .secretary-current span{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#93a7bf}
 @media(max-width:900px){.student-management-grid,.pupil-form-grid,.secretary-controls{grid-template-columns:1fr!important}}
 @media(max-width:520px){.pupil-admin-row{flex-direction:column!important;align-items:flex-start!important}}
+.setup-note{font-size:12px;color:#93a7bf;font-weight:600}
+.student-management-grid.single{grid-template-columns:1fr!important}
+.secretary-setup .year-inline{flex-direction:row!important;align-items:center;gap:10px}
+.secretary-setup .year-inline select{width:120px}
+.round-rows{display:flex;flex-direction:column;gap:10px}
+.round-row{display:grid;grid-template-columns:70px 1fr auto;align-items:center;gap:14px;padding:12px 14px;border:1px solid rgba(120,190,255,.18);border-radius:14px;background:rgba(4,12,26,.6)}
+.round-kind{font-size:15px;color:#f4f8ff}
+.round-chips{display:flex;flex-wrap:wrap;gap:8px}
+.round-chip{padding:5px 11px;border-radius:999px;background:rgba(79,200,255,.14);border:1px solid rgba(79,200,255,.35);color:#cdefff;font-size:12px;font-weight:800}
+.round-empty{font-size:12px;color:#93a7bf}
+.round-row .btn{border-radius:12px!important;white-space:nowrap}
+@media(max-width:620px){.round-row{grid-template-columns:1fr}}
