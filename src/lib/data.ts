@@ -21,7 +21,8 @@ export async function getAssessments(schoolYear: number, kind?: 'AR' | 'UASA' | 
   if (kind) q = q.eq('kind', kind);
   const { data, error } = await q;
   if (error) throw error;
-  return (data || []) as Assessment[];
+  // UASA is once a year: ignore any stray UASA rounds (e.g. UASA2) created by mistake.
+  return ((data || []) as Assessment[]).filter((a) => a.kind !== 'UASA' || a.code === 'UASA');
 }
 
 export async function getSubjectsForYear(yearLevel: number, mode: 'AR' | 'UASA' | 'PBD'): Promise<Subject[]> {

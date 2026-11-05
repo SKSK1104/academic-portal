@@ -49,7 +49,7 @@ export function PublicAcademicPage() {
     });
     supabase.rpc('v2_public_assessments', { p_year: year }).then(({ data, error }) => {
       if (error) { setError(error.message); return; }
-      const academic = ((data || []) as PublicAssessment[]).filter((x) => x.kind === 'AR' || x.kind === 'UASA');
+      const academic = ((data || []) as PublicAssessment[]).filter((x) => x.kind === 'AR' || (x.kind === 'UASA' && x.code === 'UASA'));
       setAssessments(academic); setAssessment(academic[0]?.code || '');
     });
   }, [year]);

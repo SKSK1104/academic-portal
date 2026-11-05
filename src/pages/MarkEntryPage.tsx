@@ -240,7 +240,7 @@ export function MarkEntryPage() {
           <tbody>{loading ? <tr><td colSpan={(mode === 'AR' ? 6 : 2) + orderedAssessments.length * 2}>Memuatkan...</td></tr> : rows.map((r, i) => <tr key={r.enrolmentId}><td>{i + 1}</td><td className="student-name">{r.name}</td>
             {mode === 'AR' && <><td><input type="number" min="0" max="100" value={r.tov} onChange={(e) => updateBenchmark(i, 'tov', e.target.value)}/></td>
             <td>{gradeBadge(r.tov)}</td></>}
-            {orderedAssessments.map((a) => <><td key={`${r.enrolmentId}-${a.id}-score`}><input type={mode === 'UASA' ? 'text' : 'number'} inputMode={mode === 'UASA' ? 'text' : 'numeric'} placeholder={mode === 'UASA' ? '0-100/A-F' : undefined} min="0" max="100" value={r.scores[a.id] ?? ''} onChange={(e) => updateAr(i, a.id, e.target.value)}/></td><td key={`${r.enrolmentId}-${a.id}-grade`}>{gradeBadge(r.scores[a.id] ?? '')}</td></>)}
+            {orderedAssessments.map((a) => <><td key={`${r.enrolmentId}-${a.id}-score`}><input type={mode === 'UASA' ? 'text' : 'number'} inputMode={mode === 'UASA' ? 'text' : 'numeric'} min="0" max="100" value={r.scores[a.id] ?? ''} onChange={(e) => updateAr(i, a.id, e.target.value)}/></td><td key={`${r.enrolmentId}-${a.id}-grade`}>{gradeBadge(r.scores[a.id] ?? '')}</td></>)}
             {mode === 'AR' && <><td><input type="number" min="0" max="100" value={r.etr} onChange={(e) => updateBenchmark(i, 'etr', e.target.value)}/></td>
             <td>{gradeBadge(r.etr)}</td></>}
           </tr>)}</tbody>
