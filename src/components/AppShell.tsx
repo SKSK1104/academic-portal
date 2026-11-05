@@ -1,4 +1,5 @@
-import { BarChart3, BookOpenCheck, BrainCircuit, FileUp, Home, LogOut, Search, ShieldCheck } from 'lucide-react';
+import { BarChart3, BookOpenCheck, BrainCircuit, FileUp, Globe, Home, LogOut, Menu, Search, ShieldCheck, X } from 'lucide-react';
+import { useState } from 'react';
 import { Link, NavLink, Outlet } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
 import { SCHOOL_NAME } from '../lib/constants';
@@ -63,22 +64,27 @@ export function PublicShell() {
 
 export function TeacherShell() {
   const { signOut } = useAuth();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const navItems = (onPick?: () => void) => <>
+    <Link to="/" className="side-link" onClick={onPick}><Globe size={18}/><span>Laman Utama</span></Link>
+    {teacherLinks.map(({ to, label, icon: Icon, end }) => <NavLink key={to} to={to} end={end} onClick={onPick} className={({ isActive }) => `side-link ${isActive ? 'active' : ''}`}>
+      <Icon size={18}/><span>{label}</span>
+    </NavLink>)}
+  </>;
   return <div className="teacher-layout pristine-root">
     <aside className="sidebar pristine-sidebar">
-      <Link to="/guru" className="sidebar-brand-link"><Brand teacher /></Link>
+      <Link to="/" className="sidebar-brand-link" aria-label="Laman Utama"><Brand teacher /></Link>
       <div className="school-motto" aria-label="Cergas Punca Cerdas"><span>CERGAS</span><span>PUNCA</span><span>CERDAS</span></div>
-      <nav className="side-nav">
-        {teacherLinks.map(({ to, label, icon: Icon, end }) => <NavLink key={to} to={to} end={end} className={({ isActive }) => `side-link ${isActive ? 'active' : ''}`}>
-          <Icon size={18}/><span>{label}</span>
-        </NavLink>)}
-      </nav>
+      <nav className="side-nav">{navItems()}</nav>
       <button className="side-link logout" onClick={() => signOut()}><LogOut size={18}/> Log Keluar</button>
     </aside>
     <div className="teacher-content">
       <header className="mobile-teacher-bar">
-        <div style={{display:'flex',alignItems:'center',gap:12,minWidth:0}}><Crest compact/><span style={{fontWeight:800,color:'#fff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{SCHOOL_NAME}</span></div>
-        <button className="icon-button" onClick={() => signOut()}><LogOut size={17}/></button>
+        <button type="button" className="icon-button mobile-menu-button" aria-label="Menu" onClick={() => setMenuOpen((v) => !v)}>{menuOpen ? <X size={20}/> : <Menu size={20}/>}</button>
+        <Link to="/" aria-label="Laman Utama" style={{display:'flex',alignItems:'center',gap:12,minWidth:0,textDecoration:'none'}}><Crest compact/><span style={{fontWeight:800,color:'#fff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{SCHOOL_NAME}</span></Link>
+        <button className="icon-button" aria-label="Log Keluar" onClick={() => signOut()}><LogOut size={17}/></button>
       </header>
+      {menuOpen && <nav className="mobile-nav-drawer">{navItems(() => setMenuOpen(false))}</nav>}
       <main className="teacher-main"><Outlet /></main>
     </div>
   </div>;

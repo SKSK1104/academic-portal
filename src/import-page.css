@@ -70,3 +70,11 @@
 .roster-filters .year-inline select{width:170px}
 .roster-count{font-size:13px;color:#a9bbd0;margin:0 0 10px}
 .student-admin-head{flex-wrap:wrap}
+/* Phone navigation drawer */
+.mobile-nav-drawer{display:none}
+@media(max-width:780px){
+  .mobile-nav-drawer{display:flex;flex-direction:column;gap:6px;position:sticky;top:86px;z-index:49;padding:12px 14px;background:rgba(6,16,32,.97);border-bottom:1px solid rgba(120,190,255,.2)}
+  .mobile-nav-drawer .side-link{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;color:#f4f8ff;text-decoration:none;font-weight:700}
+  .mobile-nav-drawer .side-link.active{background:linear-gradient(135deg,rgba(24,150,230,.32),rgba(80,90,230,.28))}
+}
+.mobile-menu-button{flex:0 0 auto}
