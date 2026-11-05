@@ -78,3 +78,7 @@
   .mobile-nav-drawer .side-link.active{background:linear-gradient(135deg,rgba(24,150,230,.32),rgba(80,90,230,.28))}
 }
 .mobile-menu-button{flex:0 0 auto}
+.guide-list{display:flex;flex-direction:column;gap:10px;max-width:860px}
+.guide-item{border:1px solid rgba(120,190,255,.18);border-radius:14px;background:rgba(10,22,40,.82);padding:0 18px}
+.guide-item summary{cursor:pointer;padding:16px 0;font-weight:700;color:#f4f8ff;font-size:15px}
+.guide-item ol{margin:0 0 16px;padding-left:20px;color:#d5dce7;line-height:1.7;font-size:14px}

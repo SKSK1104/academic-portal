@@ -1,4 +1,4 @@
-import { BarChart3, BookOpenCheck, BrainCircuit, FileUp, Globe, Home, LogOut, Menu, Search, ShieldCheck, X } from 'lucide-react';
+import { BarChart3, BookOpenCheck, BrainCircuit, FileUp, Globe, HelpCircle, Home, LogOut, Menu, Search, ShieldCheck, X } from 'lucide-react';
 import { useState } from 'react';
 import { Link, NavLink, Outlet } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
@@ -11,7 +11,8 @@ const teacherLinks = [
   { to: '/guru/import', label: 'Import Data', icon: FileUp },
   { to: '/guru/analisis', label: 'Analisis Akademik', icon: BarChart3 },
   { to: '/guru/pbd', label: 'Analisis PBD', icon: Search },
-  { to: '/guru/kecerdasan', label: 'Kecerdasan Pelbagai', icon: BrainCircuit }
+  { to: '/guru/kecerdasan', label: 'Kecerdasan Pelbagai', icon: BrainCircuit },
+  { to: '/guru/panduan', label: 'Panduan', icon: HelpCircle }
 ];
 
 function Crest({ compact = false }: { compact?: boolean }) {

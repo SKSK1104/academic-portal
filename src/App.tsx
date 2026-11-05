@@ -2,6 +2,7 @@ import { lazy, Suspense, useState } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
 import { PublicShell, TeacherShell } from './components/AppShell';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { GuidePage } from './pages/GuidePage';
 import { SecretaryAssessmentSetup } from './components/SecretaryAssessmentSetup';
 import { StudentManagement } from './components/StudentManagement';
 
@@ -60,6 +61,7 @@ export default function App() {
         <Route path="import" element={<ImportDataRoute />} />
         <Route path="analisis" element={<AcademicAnalysisPage />} />
         <Route path="pbd" element={<PbdAnalysisPage />} />
+        <Route path="panduan" element={<GuidePage />} />
         <Route path="kecerdasan" element={<IntelligencePage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
