@@ -1,0 +1,19 @@
+/* Import Data page: one clean dark theme, loaded last so older light-theme rules can't leak through */
+.import-page-title{margin:0 0 16px;font-size:28px;font-weight:800;color:#f4f8ff}
+.import-task-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.import-task-card{display:flex;flex-direction:column;gap:6px;text-align:left;padding:18px;border-radius:16px;border:1px solid rgba(120,190,255,.18);background:rgba(10,22,40,.82);color:#f4f8ff;cursor:pointer;transition:border-color .15s,background .15s}
+.import-task-card strong{font-size:16px;font-weight:800}
+.import-task-card span{font-size:12px;color:#93a7bf;line-height:1.4}
+.import-task-card:hover{border-color:rgba(90,200,255,.45)}
+.import-task-card.active{background:linear-gradient(135deg,rgba(24,150,230,.32),rgba(80,90,230,.28));border-color:#4fc8ff}
+.import-help{margin:10px 0 0;font-size:13px;color:#a9bbd0}
+.secretary-setup,.student-management-section,.assessment-import-panel,.preview-card,.maintenance-row,.history-card,.student-admin-card,.secretary-current,.pupil-admin-row{background:rgba(10,22,40,.82)!important;border:1px solid rgba(120,190,255,.18)!important;border-top-width:1px!important;border-radius:16px!important;color:#f4f8ff!important;box-shadow:none!important}
+.secretary-heading strong,.secretary-heading h2,.section-heading h2,.student-admin-head h3,.assessment-import-heading h2{font-family:inherit!important;font-weight:800!important;color:#f4f8ff!important}
+.restricted-kicker,.secretary-heading>div span{color:#8fe5ff!important}
+.secretary-controls{background:transparent!important;border:0!important;gap:12px!important}
+.secretary-controls+.secretary-controls{margin-top:12px}
+.secretary-controls>.btn{border-radius:12px!important}
+.history-details{margin-top:22px}
+.history-details>summary{cursor:pointer;color:#a9bbd0;font-weight:700;padding:10px 0}
+@media(max-width:900px){.import-task-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:520px){.import-task-grid{grid-template-columns:1fr}}

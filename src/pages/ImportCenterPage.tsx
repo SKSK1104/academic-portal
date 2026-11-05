@@ -26,7 +26,7 @@ function normalizeClassName(value: string) {
 }
 function normalizeName(value: string) { return value.toUpperCase().replace(/\s+/g, ' ').trim(); }
 
-export function ImportCenterPage() {
+export function ImportCenterPage({ mode = 'UASA' }: { mode?: 'UASA' | 'PBD' | 'ROSTER' }) {
   const [preview, setPreview] = useState<PreviewState | null>(null);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('');
@@ -45,6 +45,7 @@ export function ImportCenterPage() {
   }, [preview, busy, parsedPreview, roundForPreview]);
 
   useEffect(() => { void loadHistory(); }, []);
+  useEffect(() => { if (mode !== 'ROSTER') { setPdfHint(mode); setPreview(null); } }, [mode]);
 
   async function loadHistory() {
     const { data, error } = await supabase
@@ -323,18 +324,16 @@ export function ImportCenterPage() {
   }
 
   return <>
-    <PageHeader title="Import Data" />
-
-    <GlassCard className="assessment-import-panel">
-      <div className="assessment-import-heading"><FileText size={22}/><h2>Import Pentaksiran</h2></div>
+    {mode !== 'ROSTER' && <GlassCard className="assessment-import-panel">
+      <div className="assessment-import-heading"><FileText size={22}/><h2>Muat Naik {mode}</h2></div>
+      <p className="import-help">1. Pilih tahun dan pusingan · 2. Pilih fail PDF satu kelas · 3. Semak pratonton, tekan Sahkan Import</p>
       <div className="assessment-import-controls">
-        <label>Jenis<select value={pdfHint} onChange={(e) => { setPdfHint(e.target.value as any); setPreview(null); }}><option value="AUTO">Auto Detect</option><option value="PBD">PBD</option><option value="UASA">UASA</option></select></label>
         <label>Tahun<input type="number" value={schoolYear} onChange={(e) => setSchoolYear(Number(e.target.value))}/></label>
-        <label>Pusingan PBD<select value={pbdRound} onChange={(e) => setPbdRound(e.target.value as PbdRound)} disabled={pdfHint === 'UASA'}><option value="AUTO">Auto Detect</option><option value="PBD1">PBD 1</option><option value="PBD2">PBD 2</option></select></label>
-        <label>Pusingan UASA<select value={uasaRoundNo} onChange={(e) => setUasaRoundNo(Number(e.target.value))} disabled={pdfHint === 'PBD'}><option value={1}>UASA 1</option><option value={2}>UASA 2</option><option value={3}>UASA 3</option><option value={4}>UASA 4</option></select></label>
+        {mode === 'PBD' && <label>Pusingan PBD<select value={pbdRound} onChange={(e) => setPbdRound(e.target.value as PbdRound)}><option value="AUTO">Ikut PDF</option><option value="PBD1">PBD 1</option><option value="PBD2">PBD 2</option></select></label>}
+        {mode === 'UASA' && <label>Pusingan UASA<select value={uasaRoundNo} onChange={(e) => setUasaRoundNo(Number(e.target.value))}><option value={1}>UASA 1</option><option value={2}>UASA 2</option><option value={3}>UASA 3</option><option value={4}>UASA 4</option></select></label>}
         <label className="primary-upload"><span>Fail PDF</span><span className="upload-button"><UploadCloud size={17}/> Pilih PDF<input type="file" accept="application/pdf" hidden onChange={(e) => handlePdf(e.target.files)}/></span></label>
       </div>
-    </GlassCard>
+    </GlassCard>}
 
     {status && <div className={`notice ${status.includes('berjaya') ? 'success' : ''}`}>{status}</div>}
 
@@ -347,12 +346,12 @@ export function ImportCenterPage() {
       <div className="preview-actions"><button className="btn btn-ghost" onClick={() => setPreview(null)}>Batal</button><button className="btn btn-primary" disabled={!canConfirm} onClick={confirm}>{busy ? 'Memproses…' : 'Sahkan Import'}</button></div>
     </GlassCard>}
 
-    <section className="data-maintenance">
-      <div className="section-heading"><h2>Pengurusan Data</h2></div>
+    {mode === 'ROSTER' && <section className="data-maintenance">
+      <div className="section-heading"><h2>Muat Naik Roster Penuh</h2></div>
       <GlassCard className="maintenance-row"><div className="maintenance-identity"><Users size={20}/><strong>Roster Murid</strong></div><label className="btn btn-ghost">Pilih Fail<input type="file" hidden accept=".xlsx,.csv" onChange={(e) => handleRoster(e.target.files)}/></label></GlassCard>
-    </section>
+    </section>}
 
-    <GlassCard className="history-card">
+    <details className="history-details"><summary>Sejarah Import</summary><GlassCard className="history-card">
       <div className="card-toolbar"><div><h2>Sejarah Import</h2></div><button className="btn btn-ghost" onClick={() => void loadHistory()}>Segar Semula</button></div>
       {!history.length ? <div className="empty-inline">Belum ada sejarah import.</div> : <div className="table-scroll"><table className="data-table"><thead><tr><th>Tarikh</th><th>Jenis</th><th>Fail</th><th>Tahun</th><th>Status</th></tr></thead><tbody>{history.map((row) => {
         const validation = row.validation_summary || {};
@@ -360,7 +359,7 @@ export function ImportCenterPage() {
         const label = verified === true ? 'Disahkan' : verified === false ? 'Semakan diperlukan' : (validation.warnings?.length ? `${validation.warnings.length} amaran` : 'Selesai');
         return <tr key={row.id}><td>{new Date(row.created_at).toLocaleString('ms-MY')}</td><td>{displayImportType(row.import_type)}</td><td>{row.file_name}</td><td>{row.school_year}</td><td><span className={`mini-status ${verified === true ? 'ok' : verified === false ? 'warn' : ''}`}>{label}</span></td></tr>;
       })}</tbody></table></div>}
-    </GlassCard>
+    </GlassCard></details>
   </>;
 }
 

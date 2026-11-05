@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
 import { PublicShell, TeacherShell } from './components/AppShell';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -22,8 +22,25 @@ function RouteLoader() {
   return <div className="route-loading" role="status" aria-live="polite">Memuatkan portal…</div>;
 }
 
+type ImportTask = 'UASA' | 'PBD' | 'ROSTER' | 'SETUP';
+const IMPORT_TASKS: Array<{ key: ImportTask; title: string; note: string }> = [
+  { key: 'UASA', title: 'Muat Naik UASA', note: 'PDF keputusan UASA satu kelas' },
+  { key: 'PBD', title: 'Muat Naik PBD', note: 'PDF PBD 1 atau PBD 2' },
+  { key: 'ROSTER', title: 'Kemas Kini Murid', note: 'Murid masuk, pindah, roster penuh' },
+  { key: 'SETUP', title: 'Tetapan Pusingan', note: 'Aktifkan AR / UASA (Setiausaha)' }
+];
+
 function ImportDataRoute() {
-  return <><SecretaryAssessmentSetup/><StudentManagement/><ImportCenterPage/></>;
+  const [task, setTask] = useState<ImportTask>('UASA');
+  return <>
+    <h1 className="import-page-title">Import Data</h1>
+    <div className="import-task-grid">
+      {IMPORT_TASKS.map((t) => <button key={t.key} type="button" className={`import-task-card${task === t.key ? ' active' : ''}`} onClick={() => setTask(t.key)}><strong>{t.title}</strong><span>{t.note}</span></button>)}
+    </div>
+    {task === 'SETUP' && <SecretaryAssessmentSetup/>}
+    {task === 'ROSTER' && <StudentManagement/>}
+    {task !== 'SETUP' && <ImportCenterPage mode={task}/>}
+  </>;
 }
 
 export default function App() {
