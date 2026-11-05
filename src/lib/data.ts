@@ -51,3 +51,28 @@ export async function createNextAr(schoolYear: number): Promise<Assessment> {
   if (error) throw error;
   return data as Assessment;
 }
+
+// UASA round codes: round 1 keeps the original code 'UASA' so existing data is untouched.
+export function uasaCode(round: number): string {
+  return round <= 1 ? 'UASA' : `UASA${round}`;
+}
+
+export function uasaRound(code: string): number {
+  return Number(String(code).replace(/\D/g, '')) || 1;
+}
+
+export async function createNextUasa(schoolYear: number): Promise<Assessment> {
+  const existing = await getAssessments(schoolYear, 'UASA');
+  const next = Math.max(0, ...existing.map((x) => uasaRound(x.code))) + 1;
+  const { data, error } = await supabase.from('v2_assessments').insert({
+    school_year: schoolYear,
+    kind: 'UASA',
+    code: uasaCode(next),
+    sequence_no: next,
+    title: `UASA ${next} ${schoolYear}`,
+    source_kind: 'manual',
+    is_active: true
+  }).select('*').single();
+  if (error) throw error;
+  return data as Assessment;
+}

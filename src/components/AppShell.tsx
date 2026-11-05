@@ -6,7 +6,7 @@ import { SCHOOL_LOGO_DATA_URI } from '../lib/schoolLogo';
 
 const teacherLinks = [
   { to: '/guru', label: 'Dashboard', icon: Home, end: true },
-  { to: '/guru/pengisian', label: 'Pengisian AR', icon: BookOpenCheck },
+  { to: '/guru/pengisian', label: 'Pengisian AR / UASA', icon: BookOpenCheck },
   { to: '/guru/import', label: 'Import Data', icon: FileUp },
   { to: '/guru/analisis', label: 'Analisis Akademik', icon: BarChart3 },
   { to: '/guru/pbd', label: 'Analisis PBD', icon: Search },

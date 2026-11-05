@@ -19,6 +19,8 @@ interface EntryRow {
 export function MarkEntryPage() {
   const [years, setYears] = useState<number[]>([]);
   const [year, setYear] = useState(new Date().getFullYear());
+  const [mode, setMode] = useState<'AR' | 'UASA'>('AR');
+  const [filledKeys, setFilledKeys] = useState<Set<string>>(new Set());
   const [classes, setClasses] = useState<Array<{ className: string; yearLevel: number }>>([]);
   const [className, setClassName] = useState('');
   const [assessments, setAssessments] = useState<Assessment[]>([]);
@@ -39,20 +41,20 @@ export function MarkEntryPage() {
 
   useEffect(() => {
     if (!year) return;
-    Promise.all([getClasses(year), getAssessments(year, 'AR')]).then(([cs, ars]) => {
+    Promise.all([getClasses(year), getAssessments(year, mode)]).then(([cs, ars]) => {
       setClasses(cs);
       setClassName((current) => cs.some((x) => x.className === current) ? current : (cs[0]?.className || ''));
       setAssessments(ars);
     }).catch((e) => setMessage(e.message));
-  }, [year]);
+  }, [year, mode]);
 
   useEffect(() => {
     if (!selectedClass) return;
-    getSubjectsForYear(selectedClass.yearLevel, 'AR').then((subs) => {
+    getSubjectsForYear(selectedClass.yearLevel, mode).then((subs) => {
       setSubjects(subs);
       setSubjectId((current) => subs.some((s) => s.id === current) ? current : (subs[0]?.id || ''));
     }).catch((e) => setMessage(e.message));
-  }, [selectedClass]);
+  }, [selectedClass, mode]);
 
   useEffect(() => {
     if (!className || !subjectId || !orderedAssessments.length) { setRows([]); return; }
@@ -81,11 +83,13 @@ export function MarkEntryPage() {
 
       const benchmarkByEnrolment = new Map((benchmarks || []).map((x: any) => [x.enrolment_id, x]));
       const scoreByKey = new Map((marks || []).map((x: any) => [`${x.enrolment_id}|${x.assessment_id}`, x]));
+      setFilledKeys(new Set(scoreByKey.keys()));
       setRows((enrolments || []).map((x: any) => {
         const scores: Record<string, string> = {};
         orderedAssessments.forEach((a) => {
           const mark = scoreByKey.get(`${x.id}|${a.id}`) as any;
-          scores[a.id] = mark?.score === null || mark?.score === undefined ? '' : String(mark.score);
+          if (mark?.score !== null && mark?.score !== undefined) scores[a.id] = String(mark.score);
+          else scores[a.id] = mode === 'UASA' && mark?.grade ? String(mark.grade) : '';
         });
         return {
           enrolmentId: x.id,
@@ -109,15 +113,61 @@ export function MarkEntryPage() {
     setRows((prev) => prev.map((row, i) => i === index ? { ...row, [key]: clean } : row));
   }
 
+  function cleanUasa(value: string) {
+    const v = value.toUpperCase().trim();
+    if (v === '') return '';
+    if (/^\d+$/.test(v)) return cleanScore(v);
+    if (/^([A-F]|T|TH)$/.test(v)) return v;
+    return null;
+  }
+
   function updateAr(index: number, assessmentId: string, value: string) {
-    const clean = cleanScore(value);
+    const clean = mode === 'UASA' ? cleanUasa(value) : cleanScore(value);
+    if (clean === null) return;
     setRows((prev) => prev.map((row, i) => i === index ? { ...row, scores: { ...row.scores, [assessmentId]: clean } } : row));
+  }
+
+  async function saveUasa() {
+    const now = new Date().toISOString();
+    const upserts: any[] = [];
+    const cleared: Array<{ enrolmentId: string; assessmentId: string }> = [];
+    rows.forEach((r) => orderedAssessments.forEach((a) => {
+      const raw = (r.scores[a.id] ?? '').trim();
+      if (raw === '' || raw === 'T') {
+        if (filledKeys.has(`${r.enrolmentId}|${a.id}`)) cleared.push({ enrolmentId: r.enrolmentId, assessmentId: a.id });
+        return;
+      }
+      const isNumber = /^\d+$/.test(raw);
+      upserts.push({
+        enrolment_id: r.enrolmentId,
+        subject_id: subjectId,
+        assessment_id: a.id,
+        score: isNumber ? Number(raw) : null,
+        grade: isNumber ? gradeFromScore(Number(raw)) : raw,
+        source: 'manual',
+        updated_at: now
+      });
+    }));
+    if (upserts.length) {
+      const m = await supabase.from('v2_academic_marks').upsert(upserts, { onConflict: 'assessment_id,enrolment_id,subject_id' });
+      if (m.error) throw m.error;
+    }
+    for (const c of cleared) {
+      const d = await supabase.from('v2_academic_marks').delete().eq('assessment_id', c.assessmentId).eq('enrolment_id', c.enrolmentId).eq('subject_id', subjectId);
+      if (d.error) throw d.error;
+    }
+    setFilledKeys(new Set(upserts.map((u) => `${u.enrolment_id}|${u.assessment_id}`).concat([...filledKeys].filter((k) => !cleared.some((c) => `${c.enrolmentId}|${c.assessmentId}` === k)))));
   }
 
   async function save() {
     if (!subjectId || !orderedAssessments.length) return;
     setSaving(true); setMessage('');
     try {
+      if (mode === 'UASA') {
+        await saveUasa();
+        setMessage('Markah UASA berjaya disimpan.');
+        return;
+      }
       const now = new Date().toISOString();
       const benchmarkPayload = rows.map((r) => ({
         enrolment_id: r.enrolmentId,
@@ -170,10 +220,11 @@ export function MarkEntryPage() {
         .ar-round-table .grade-badge{margin-left:0!important}
       }
     `}</style>
-    <PageHeader title="Pengisian AR" actions={<button className="btn btn-primary" onClick={save} disabled={saving || !rows.length}><CloudUpload size={16}/>{saving ? 'Menyimpan...' : 'Simpan'}</button>} />
+    <PageHeader title="Pengisian AR / UASA" actions={<button className="btn btn-primary" onClick={save} disabled={saving || !rows.length}><CloudUpload size={16}/>{saving ? 'Menyimpan...' : 'Simpan'}</button>} />
 
     <GlassCard className="filter-card">
       <div className="filter-grid three">
+        <label>Jenis<select value={mode} onChange={(e) => { setMode(e.target.value as 'AR' | 'UASA'); setRows([]); setMessage(''); }}><option value="AR">AR</option><option value="UASA">UASA</option></select></label>
         <label>Tahun<select value={year} onChange={(e) => setYear(Number(e.target.value))}>{years.map((y) => <option key={y}>{y}</option>)}</select></label>
         <label>Kelas<select value={className} onChange={(e) => setClassName(e.target.value)}>{classes.map((x) => <option key={x.className} value={x.className}>{x.yearLevel} {formatClass(x.className)}</option>)}</select></label>
         <label>Mata Pelajaran<select value={subjectId} onChange={(e) => setSubjectId(e.target.value)}>{subjects.map((s) => <option value={s.id} key={s.id}>{s.name_ms}</option>)}</select></label>
@@ -183,14 +234,15 @@ export function MarkEntryPage() {
     <GlassCard className="table-card ar-entry-card">
       <div className="card-toolbar"><div><h2>{classLabel}</h2><p>{subjects.find((s) => s.id === subjectId)?.name_ms || 'Pilih mata pelajaran'}</p></div><div className="status-chip"><Users size={15}/>{rows.length} murid</div></div>
       {message && <div className={message.includes('berjaya') ? 'notice success' : 'notice'}>{message}</div>}
+      {!orderedAssessments.length && <div className="notice">Tiada {mode} aktif untuk {year}. Setiausaha Peperiksaan perlu aktifkan {mode} dahulu di halaman Import Data.</div>}
       <div className="table-scroll ar-entry-scroll">
-        <table className="data-table mark-table ar-round-table"><thead><tr><th>Bil</th><th>Nama Murid</th><th>TOV</th><th>Gred</th>{orderedAssessments.map((a) => <><th key={`${a.id}-score`}>{a.code}</th><th key={`${a.id}-grade`}>Gred</th></>)}<th>ETR</th><th>Gred</th></tr></thead>
-          <tbody>{loading ? <tr><td colSpan={6 + orderedAssessments.length * 2}>Memuatkan...</td></tr> : rows.map((r, i) => <tr key={r.enrolmentId}><td>{i + 1}</td><td className="student-name">{r.name}</td>
-            <td><input type="number" min="0" max="100" value={r.tov} onChange={(e) => updateBenchmark(i, 'tov', e.target.value)}/></td>
-            <td>{gradeBadge(r.tov)}</td>
-            {orderedAssessments.map((a) => <><td key={`${r.enrolmentId}-${a.id}-score`}><input type="number" min="0" max="100" value={r.scores[a.id] ?? ''} onChange={(e) => updateAr(i, a.id, e.target.value)}/></td><td key={`${r.enrolmentId}-${a.id}-grade`}>{gradeBadge(r.scores[a.id] ?? '')}</td></>)}
-            <td><input type="number" min="0" max="100" value={r.etr} onChange={(e) => updateBenchmark(i, 'etr', e.target.value)}/></td>
-            <td>{gradeBadge(r.etr)}</td>
+        <table className="data-table mark-table ar-round-table"><thead><tr><th>Bil</th><th>Nama Murid</th>{mode === 'AR' && <><th>TOV</th><th>Gred</th></>}{orderedAssessments.map((a) => <><th key={`${a.id}-score`}>{a.code}</th><th key={`${a.id}-grade`}>Gred</th></>)}{mode === 'AR' && <><th>ETR</th><th>Gred</th></>}</tr></thead>
+          <tbody>{loading ? <tr><td colSpan={(mode === 'AR' ? 6 : 2) + orderedAssessments.length * 2}>Memuatkan...</td></tr> : rows.map((r, i) => <tr key={r.enrolmentId}><td>{i + 1}</td><td className="student-name">{r.name}</td>
+            {mode === 'AR' && <><td><input type="number" min="0" max="100" value={r.tov} onChange={(e) => updateBenchmark(i, 'tov', e.target.value)}/></td>
+            <td>{gradeBadge(r.tov)}</td></>}
+            {orderedAssessments.map((a) => <><td key={`${r.enrolmentId}-${a.id}-score`}><input type={mode === 'UASA' ? 'text' : 'number'} inputMode={mode === 'UASA' ? 'text' : 'numeric'} placeholder={mode === 'UASA' ? '0-100/A-F' : undefined} min="0" max="100" value={r.scores[a.id] ?? ''} onChange={(e) => updateAr(i, a.id, e.target.value)}/></td><td key={`${r.enrolmentId}-${a.id}-grade`}>{gradeBadge(r.scores[a.id] ?? '')}</td></>)}
+            {mode === 'AR' && <><td><input type="number" min="0" max="100" value={r.etr} onChange={(e) => updateBenchmark(i, 'etr', e.target.value)}/></td>
+            <td>{gradeBadge(r.etr)}</td></>}
           </tr>)}</tbody>
         </table>
       </div>
@@ -210,7 +262,8 @@ const gradeStyles: Record<string, CSSProperties> = {
 };
 
 function gradeBadge(value: string) {
-  const grade = value === '' ? 'TH' : gradeFromScore(Number(value));
-  return <span className={`grade-badge grade-${grade}`} style={{...gradeStyles[grade],minWidth:46,width:46,height:38,borderRadius:13,display:'inline-flex',alignItems:'center',justifyContent:'center',fontWeight:900,fontSize:17,marginLeft:0,WebkitTextFillColor:'currentColor'}}>{value === '' ? '—' : grade}</span>;
+  const v = String(value).toUpperCase();
+  const grade = v === '' || v === 'T' ? 'TH' : /^([A-F]|TH)$/.test(v) ? v : gradeFromScore(Number(v));
+  return <span className={`grade-badge grade-${grade}`} style={{...gradeStyles[grade],minWidth:46,width:46,height:38,borderRadius:13,display:'inline-flex',alignItems:'center',justifyContent:'center',fontWeight:900,fontSize:17,marginLeft:0,WebkitTextFillColor:'currentColor'}}>{v === '' || v === 'T' ? '—' : grade}</span>;
 }
 function formatClass(value: string) { return value ? value.charAt(0) + value.slice(1).toLowerCase() : ''; }
