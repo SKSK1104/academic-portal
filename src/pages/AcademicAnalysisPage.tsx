@@ -69,7 +69,7 @@ export function AcademicAnalysisPage() {
 
       const enrolmentIds = scopedEnrolments.map((e) => e.id);
       const studentIds = [...new Set(scopedEnrolments.map((e) => e.student_id))];
-      const arAssessmentIds = assessments.filter((a) => a.kind === 'AR').map((a) => a.id);
+      const arAssessmentIds = assessments.filter((a) => a.kind === 'AR' || a.kind === 'UASA').map((a) => a.id);
 
       const [studentResult, currentResult, trendResult, benchmarkResult, offeringResult] = await Promise.all([
         studentIds.length ? supabase.from('v2_students').select('id,name,oku_status').in('id', studentIds) : Promise.resolve({ data: [], error: null }),
@@ -106,7 +106,8 @@ export function AcademicAnalysisPage() {
   const subjectById = useMemo(() => new Map(subjects.map((s) => [s.id, s])), [subjects]);
   const studentById = useMemo(() => new Map(students.map((s) => [s.id, s])), [students]);
   const enrolmentById = useMemo(() => new Map(enrolments.map((e) => [e.id, e])), [enrolments]);
-  const arAssessments = useMemo(() => assessments.filter((a) => a.kind === 'AR').sort((a, b) => Number(a.sequence_no || 0) - Number(b.sequence_no || 0)), [assessments]);
+  // Mark-based points on the trajectory: every AR in order, then UASA at the end of the year.
+  const arAssessments = useMemo(() => [...assessments.filter((a) => a.kind === 'AR').sort((a, b) => Number(a.sequence_no || 0) - Number(b.sequence_no || 0)), ...assessments.filter((a) => a.kind === 'UASA')], [assessments]);
 
   const subjectGroups = useMemo(() => {
     const map = new Map<string, { subject: Subject; rows: MarkRow[] }>();
@@ -267,7 +268,7 @@ export function AcademicAnalysisPage() {
     <div className="diagnostic-grid">
       <div className="trajectory-stack">
         <GlassCard className="chart-card trajectory-card premium-card">
-          <div className="card-toolbar"><div><h2>Trajektori Prestasi</h2></div><div className="status-chip">TOV → AR → ETR</div></div>
+          <div className="card-toolbar"><div><h2>Trajektori Prestasi</h2></div><div className="status-chip">TOV → AR → UASA → ETR</div></div>
           <div className="event-visibility-strip academic-mobile-events">{trajectory.map((p) => <div key={p.code}><strong>{p.code}</strong><span>{p.value === null ? 'Tiada data' : p.value.toFixed(1)}</span></div>)}</div>
           <div className="chart-height large">{loading ? <div className="empty-inline">Memuatkan analisis…</div> : trajectory.some((x) => x.value !== null) ? <ResponsiveContainer width="100%" height="100%"><BarChart data={trajectory} margin={{top:34,right:14,bottom:8,left:0}}><CartesianGrid vertical={false}/><XAxis dataKey="code" tickLine={false} axisLine={{stroke:'rgba(172,211,239,.55)'}} tick={{fontSize:14,fontWeight:800,fill:'#b9ccdf'}}/><YAxis domain={[0,100]} width={38} tickLine={false} axisLine={false} tick={{fontSize:12,fill:'#9fb5ca'}}/><Tooltip formatter={(v) => [`${v}`, 'Purata']} contentStyle={{background:'rgba(5,20,39,.97)',border:'1px solid rgba(112,205,255,.38)',borderRadius:12,color:'#fff',fontSize:13}} labelStyle={{color:'#fff',fontWeight:800}} itemStyle={{color:'#ccecff'}}/><Bar dataKey="value" fill="#ffd166" radius={[8,8,2,2]} maxBarSize={72}><LabelList dataKey="value" position="top" formatter={(value: any) => value === null ? '' : Number(value).toFixed(1)} className="trajectory-bar-label"/></Bar></BarChart></ResponsiveContainer> : <div className="empty-inline">Tiada data trajektori.</div>}</div>
         </GlassCard>
