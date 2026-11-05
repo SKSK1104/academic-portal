@@ -17,7 +17,7 @@ type EnrolmentRow = { id: string; student_id: string; class_name: string; year_l
 type StudentRow = { id: string; name: string; oku_status: string | null };
 type MarkRow = { assessment_id: string; enrolment_id: string; subject_id: string; score: number | null; grade: string | null };
 type BenchmarkRow = { enrolment_id: string; subject_id: string; tov: number | null; etr: number | null };
-type OfferingRow = { subject_id: string; year_level: number; ar_enabled: boolean; uasa_enabled: boolean };
+type OfferingRow = { subject_id: string; year_level: number; ar_enabled: boolean; pbd_enabled: boolean };
 type Drilldown = { eventCode: string; grade: string; names: string[] } | null;
 type ProgressEvent = { code: string; label: string; kind: 'TOV' | 'AR' | 'ETR'; assessmentId?: string; labelKey: string };
 
@@ -76,7 +76,7 @@ export function AcademicAnalysisPage() {
         enrolmentIds.length ? supabase.from('v2_academic_marks').select('assessment_id,enrolment_id,subject_id,score,grade').eq('assessment_id', assessmentId).in('enrolment_id', enrolmentIds) : Promise.resolve({ data: [], error: null }),
         enrolmentIds.length && arAssessmentIds.length ? supabase.from('v2_academic_marks').select('assessment_id,enrolment_id,subject_id,score,grade').in('assessment_id', arAssessmentIds).in('enrolment_id', enrolmentIds) : Promise.resolve({ data: [], error: null }),
         enrolmentIds.length ? supabase.from('v2_academic_benchmarks').select('enrolment_id,subject_id,tov,etr').in('enrolment_id', enrolmentIds) : Promise.resolve({ data: [], error: null }),
-        supabase.from('v2_subject_offerings').select('subject_id,year_level,ar_enabled,uasa_enabled')
+        supabase.from('v2_subject_offerings').select('subject_id,year_level,ar_enabled,pbd_enabled')
       ]);
       if (studentResult.error) throw studentResult.error;
       if (currentResult.error) throw currentResult.error;
@@ -136,7 +136,7 @@ export function AcademicAnalysisPage() {
 
   const candidateEnrolments = useMemo(() => {
     if (!selectedSubject || !assessment) return [];
-    const enabledYears = new Set(offerings.filter((o) => o.subject_id === selectedSubject.id && (assessment.kind === 'UASA' ? o.uasa_enabled : o.ar_enabled)).map((o) => Number(o.year_level)));
+    const enabledYears = new Set(offerings.filter((o) => o.subject_id === selectedSubject.id && (assessment.kind === 'UASA' ? o.pbd_enabled : o.ar_enabled)).map((o) => Number(o.year_level)));
     return enrolments.filter((e) => enabledYears.size === 0 || enabledYears.has(Number(e.year_level)));
   }, [selectedSubject, assessment, offerings, enrolments]);
 

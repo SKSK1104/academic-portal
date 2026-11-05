@@ -26,7 +26,8 @@ export async function getAssessments(schoolYear: number, kind?: 'AR' | 'UASA' | 
 }
 
 export async function getSubjectsForYear(yearLevel: number, mode: 'AR' | 'UASA' | 'PBD'): Promise<Subject[]> {
-  const flag = mode === 'AR' ? 'ar_enabled' : mode === 'UASA' ? 'uasa_enabled' : 'pbd_enabled';
+  // UASA uses the same subject list as PBD.
+  const flag = mode === 'AR' ? 'ar_enabled' : 'pbd_enabled';
   const { data, error } = await supabase
     .from('v2_subject_offerings')
     .select('subjects:v2_subjects!v2_subject_offerings_subject_id_fkey(id,code,name_ms,name_en)')
